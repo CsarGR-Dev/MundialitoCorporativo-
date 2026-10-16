@@ -3,10 +3,12 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using MundialitoCorporativo.Application.Abstractions.Data;
 using MundialitoCorporativo.Application.Abstractions.Persistence;
+using MundialitoCorporativo.Application.Abstractions.Queries;
 using MundialitoCorporativo.Application.Abstractions.Time;
 using MundialitoCorporativo.Infrastructure.Data;
 using MundialitoCorporativo.Infrastructure.Persistence;
 using MundialitoCorporativo.Infrastructure.Persistence.Repositories;
+using MundialitoCorporativo.Infrastructure.Queries;
 using MundialitoCorporativo.Infrastructure.Time;
 
 namespace MundialitoCorporativo.Infrastructure;
@@ -39,6 +41,11 @@ public static class DependencyInjection
 
         // Lectura (Queries): Dapper.
         services.AddSingleton<IDbConnectionFactory>(new SqlConnectionFactory(connectionString));
+        services.AddScoped<ITorneoQueries, TorneoQueries>();
+        services.AddScoped<IEquipoQueries, EquipoQueries>();
+        services.AddScoped<IJugadorQueries, JugadorQueries>();
+        services.AddScoped<IPartidoQueries, PartidoQueries>();
+        services.AddScoped<IPosicionJuegoQueries, PosicionJuegoQueries>();
 
         services.AddSingleton<IDateTimeProvider, SystemDateTimeProvider>();
 
