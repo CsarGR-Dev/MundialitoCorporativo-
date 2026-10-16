@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/Solution Items/">
+    <File Path=".gitattributes" />
     <File Path=".gitignore" />
     <File Path="Directory.Build.props" />
   </Folder>
@@ -11,5 +12,6 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/MundialitoCorporativo.UnitTests/MundialitoCorporativo.UnitTests.csproj" />
+    <Project Path="tests/MundialitoCorporativo.IntegrationTests/MundialitoCorporativo.IntegrationTests.csproj" />
   </Folder>
 </Solution>
