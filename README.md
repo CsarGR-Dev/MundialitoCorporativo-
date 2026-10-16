@@ -14,13 +14,13 @@ API en **.NET 10** con **Clean Architecture**, **CQRS** (EF Core para escritura,
 MundialitoCorporativo/
 ├── src/
 │   ├── MundialitoCorporativo.Domain          Modelos, reglas de negocio, Result Pattern, eventos de dominio
-│   ├── MundialitoCorporativo.Application     Contratos (Unit of Work, repositorios, conexión de lectura) y casos de uso
-│   ├── MundialitoCorporativo.Infrastructure  EF Core, repositorios, Unit of Work, conexión para Dapper
+│   ├── MundialitoCorporativo.Application     CQRS: despachador, Commands, Queries, validaciones y contratos
+│   ├── MundialitoCorporativo.Infrastructure  EF Core, repositorios, Unit of Work y consultas Dapper
 │   └── MundialitoCorporativo.Api             Composition root y endpoints REST
 ├── tests/
-│   ├── MundialitoCorporativo.UnitTests         Arquitectura, dominio y Unit of Work
-│   └── MundialitoCorporativo.IntegrationTests  EF Core + Unit of Work contra SQL Server
-├── Db/              Scripts SQL (estructura y vistas)
+│   ├── MundialitoCorporativo.UnitTests         Arquitectura, dominio, CQRS y Unit of Work
+│   └── MundialitoCorporativo.IntegrationTests  Commands y Queries contra SQL Server
+├── Db/              Scripts SQL (estructura, vistas y consultas de referencia)
 ├── Analisis/        Análisis del requerimiento, un documento por ítem
 └── Documentacion/   Bitácora de cambios
 ```
@@ -66,18 +66,18 @@ Los **modelos** están en español con el mismo nombre que las tablas y columnas
 | # | Ítem | Estado |
 |---|---|---|
 | 2 | Clean Architecture | Implementado: 4 capas y pruebas de arquitectura |
-| 3 | CQRS | EF Core (escritura) implementado; Commands, Queries y consultas Dapper pendientes |
+| 3 | CQRS | Implementado: despachador, Commands (EF Core + Unit of Work) y Queries (Dapper) |
 | 4 | Unit of Work | Implementado y probado |
 | 5 | Result Pattern | Implementado en Domain; mapeo a HTTP pendiente |
 | 6 | REST + idempotencia | Pendiente |
 | 7 | Observabilidad | Eventos de dominio registrados en `EventosDominio`; logging estructurado y tracing pendientes |
-| 8 | Requisitos funcionales | Modelos y reglas de negocio implementados; endpoints pendientes |
+| 8 | Requisitos funcionales | Torneos, equipos, jugadores, partidos, resultados, tabla de posiciones y goleadores implementados en Application; endpoints pendientes |
 | 9 | Seed de datos | Pendiente |
-| 10 | Filtros y paginación | Pendiente |
+| 10 | Filtros y paginación | Implementado en Application e Infrastructure (paginación en SQL, sortBy con lista blanca); endpoints pendientes |
 | 11 | Frontend Next.js | Pendiente |
 | 12 | Dockerización | Pendiente |
 | 13 | Diagrama de arquitectura | Pendiente |
 | 14 | Colección de Postman | Pendiente |
-| 15 | Pruebas | Tabla de posiciones, puntos, diferencia de gol, Result Pattern y Unit of Work cubiertos; idempotencia pendiente |
+| 15 | Pruebas | Tabla de posiciones, puntos, diferencia de gol, Result Pattern, Unit of Work y CQRS cubiertos (unitarias e integración); idempotencia pendiente |
 
 El análisis de cada ítem está en [Analisis/](Analisis/).

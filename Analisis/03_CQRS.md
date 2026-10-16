@@ -133,3 +133,13 @@ OFFSET @Skip ROWS FETCH NEXT @Take ROWS ONLY;
 - [ ] Toda paginación se resuelve en SQL (`OFFSET/FETCH`).
 - [ ] Todas las consultas Dapper son parametrizadas.
 - [ ] Tabla de posiciones y goleadores calculados con SQL, no en memoria.
+
+## Implementación real
+
+- **Despachador propio** (`Application/Messaging/Dispatcher.cs`): resuelve el handler desde el contenedor y ejecuta antes los validadores de FluentValidation; si fallan devuelve `ValidationError` (400) sin invocar el handler.
+- **Commands** (`Application/*/Commands/`): un archivo por caso de uso (Command + validador + handler). Usan repositorios EF Core y terminan con `IUnitOfWork.CommitAsync()`.
+- **Queries** (`Application/*/Queries/`): los handlers dependen de interfaces de lectura (`Application/Abstractions/Queries/`) que Infrastructure implementa con Dapper (`Infrastructure/Queries/`). Así Application no depende de Dapper y la prueba de arquitectura lo sigue verificando.
+- **SQL**: `SqlFilter` arma el WHERE solo con los filtros enviados (parametrizados, `LIKE` con comodines escapados); `SqlSort` traduce `sortBy` a columnas de una lista blanca con desempate estable; `PagedSql` ejecuta conteo y página (`OFFSET/FETCH`) en un solo viaje con `QueryMultipleAsync`.
+- **Fechas**: las consultas devuelven `TODATETIMEOFFSET(columna, 0)` para exponerlas en UTC sin ambigüedad.
+- **SQL de referencia** para SSMS: `Db/010_QRY_TablaPosiciones.sql` y `Db/011_QRY_Goleadores.sql`.
+- **Pruebas**: `UnitTests/Application/` (despachador, handlers, registro de handlers y sortBy) e `IntegrationTests/Cqrs/CqrsSqlServerTests.cs` (pila completa contra SQL Server).
