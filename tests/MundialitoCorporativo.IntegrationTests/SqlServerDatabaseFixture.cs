@@ -17,7 +17,9 @@ public sealed partial class SqlServerDatabaseFixture : IAsyncLifetime
 {
     private const string ServerVariable = "MUNDIALITO_TEST_SQLSERVER";
     private const string DefaultServer = "Server=.;Trusted_Connection=True;TrustServerCertificate=True;Connect Timeout=5";
-    private const string ScriptRelativePath = "Db/001_DDL_CrearBaseDatos.sql";
+    private const string ScriptFolder = "Db";
+    private const string ScriptFileName = "001_DDL_CrearBaseDatos.sql";
+    private const string ScriptRelativePath = ScriptFolder + "/" + ScriptFileName;
 
     private readonly string _databaseName = $"Mundialito_Pruebas_{Guid.NewGuid():N}"[..34];
     private string _serverConnectionString = string.Empty;
@@ -33,7 +35,7 @@ public sealed partial class SqlServerDatabaseFixture : IAsyncLifetime
         var scriptPath = FindScript();
         if (scriptPath is null)
         {
-            UnavailableReason = $"No se encontró el script {ScriptRelativePath}.";
+            UnavailableReason = $"No se encontró el script {ScriptRelativePath} (búsqueda desde {AppContext.BaseDirectory}).";
             return;
         }
 
@@ -87,7 +89,8 @@ public sealed partial class SqlServerDatabaseFixture : IAsyncLifetime
     {
         for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)
         {
-            var candidate = Path.Combine(directory.FullName, ScriptRelativePath);
+            // Separadores del sistema: con rutas largas (prefijo \\?\) Windows no normaliza "/".
+            var candidate = Path.Combine(directory.FullName, ScriptFolder, ScriptFileName);
             if (File.Exists(candidate))
             {
                 return candidate;
