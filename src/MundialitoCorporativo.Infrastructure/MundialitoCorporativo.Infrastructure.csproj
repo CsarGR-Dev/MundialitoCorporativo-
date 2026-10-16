@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Infrastructure implementa los contratos definidos en Application. -->
+  <ItemGroup>
+    <ProjectReference Include="..\MundialitoCorporativo.Application\MundialitoCorporativo.Application.csproj" />
+    <ProjectReference Include="..\MundialitoCorporativo.Domain\MundialitoCorporativo.Domain.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.13" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.13" />
+  </ItemGroup>
+
+</Project>

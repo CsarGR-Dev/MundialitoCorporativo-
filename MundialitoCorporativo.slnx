@@ -1,0 +1,15 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path=".gitignore" />
+    <File Path="Directory.Build.props" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/MundialitoCorporativo.Domain/MundialitoCorporativo.Domain.csproj" />
+    <Project Path="src/MundialitoCorporativo.Application/MundialitoCorporativo.Application.csproj" />
+    <Project Path="src/MundialitoCorporativo.Infrastructure/MundialitoCorporativo.Infrastructure.csproj" />
+    <Project Path="src/MundialitoCorporativo.Api/MundialitoCorporativo.Api.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/MundialitoCorporativo.UnitTests/MundialitoCorporativo.UnitTests.csproj" />
+  </Folder>
+</Solution>

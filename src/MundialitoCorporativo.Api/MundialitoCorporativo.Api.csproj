@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.13" />
+  </ItemGroup>
+
+  <!--
+    Api solo orquesta: los controladores usan Application.
+    La referencia a Infrastructure existe únicamente para registrar dependencias en Program.cs.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\MundialitoCorporativo.Application\MundialitoCorporativo.Application.csproj" />
+    <ProjectReference Include="..\MundialitoCorporativo.Infrastructure\MundialitoCorporativo.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>
