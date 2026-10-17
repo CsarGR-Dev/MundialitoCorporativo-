@@ -115,9 +115,74 @@ Opcional: endpoint `GET /api/eventos-dominio` (paginado, Dapper) para consultar 
 
 ## Criterios de aceptación
 
-- [ ] Logs en formato JSON con propiedades (`TeamId`, `ElapsedMs`, `TraceId`, `CorrelationId`).
-- [ ] Ningún log contiene cadenas de conexión ni cuerpos completos de request.
-- [ ] Cada respuesta incluye `X-Correlation-Id` y `X-Trace-Id`.
-- [ ] Cada request genera un log con su duración.
-- [ ] Al crear equipo y registrar resultado se guarda un registro en `EventosDominio` y se emite un log.
-- [ ] (Valorable) Trazas visibles en Jaeger.
+- [x] Logs en formato JSON con propiedades (`EquipoId`, `ElapsedMs`, `TraceId`, `CorrelationId`).
+- [x] Ningún log contiene cadenas de conexión ni cuerpos completos de request.
+- [x] Cada respuesta incluye `X-Correlation-Id` y `X-Trace-Id`.
+- [x] Cada request genera un log con su duración.
+- [x] Al crear equipo y registrar resultado se guarda un registro en `EventosDominio` y se emite un log.
+- [ ] (Valorable) Trazas visibles en Jaeger. La exportación OTLP ya está implementada; falta el servicio `jaeger` en docker-compose (ítem 12).
+
+## Implementación real
+
+### Ajustes respecto al diseño inicial
+
+| Diseño inicial | Implementado | Motivo |
+|---|---|---|
+| `ICorrelationIdAccessor` como servicio | El CorrelationId viaja como *baggage* de la traza (`Activity`) y en `HttpContext.Items` | Application e Infrastructure lo leen sin depender de HTTP ni de un servicio con estado; también funciona en pruebas sin la API. |
+| `UseSerilogRequestLogging` o middleware propio | Middleware propio `RequestTimingMiddleware` | Control del mensaje en español, de la propiedad `ElapsedMs` y del nivel por resultado y por request lento. |
+| Pipeline `ExceptionHandling → CorrelationId → RequestTiming → …` | `CorrelationId → RequestTiming → ExceptionHandler → StatusCodePages → Routing → Idempotency → Controllers` | La trazabilidad va por fuera del manejador de excepciones para que un 500 también lleve sus headers, su duración y el `correlationId` en el ProblemDetails. |
+| Exportación OTLP siempre activa | Activa solo si `Observability:OtlpEndpoint` tiene valor | Sin Jaeger disponible la API no intenta exportar; en Docker se configura el endpoint. |
+| Nombres en inglés del ejemplo (`TeamId`, `HomeGoals`) | Propiedades en español (`EquipoId`, `GolesLocal`) | Convención del proyecto: los modelos y sus datos en español. |
+
+### Logging estructurado (Serilog sobre `ILogger<T>`)
+
+- `Api/Observability/ObservabilityExtensions.cs`: `AddSerilog` reemplaza el proveedor de logs. Las capas usan solo `ILogger<T>`; Serilog se conoce únicamente en Api.
+- Consola: JSON (`RenderedCompactJsonFormatter`) por defecto; texto legible en desarrollo (`Observability:ConsoleFormat = Text`). Archivo diario en JSON (`logs/mundialito-AAAAMMDD.json`, 7 días).
+- Enriquecimiento: `Application`, `Environment`, `MachineName`, `TraceId`, `SpanId`, `CorrelationId` y, dentro de un request, `RequestPath` y `ActionName`.
+- Niveles mínimos en la sección `Serilog` de `appsettings.json` (`Microsoft` y `System` en Warning). En desarrollo, `MundialitoCorporativo` en Debug.
+- Todos los mensajes usan plantillas con `[LoggerMessage]` (código generado, sin interpolación).
+
+| Nivel | Dónde |
+|---|---|
+| Debug | Query ejecutada y su duración; respuesta guardada por idempotencia. |
+| Information | Request 2xx; Command ejecutado; evento de dominio registrado; equipo creado; resultado registrado; repetición idempotente. |
+| Warning | Request 4xx; Result fallido (con `ErrorType` y `ErrorCode`); request lento (> 500 ms); clave de idempotencia reutilizada o en proceso; conflicto de concurrencia o restricción de base de datos. |
+| Error | Excepción no controlada (una sola vez, en `GlobalExceptionHandler`); request 5xx; handler de evento que falla. |
+
+Datos que **no** se registran: cuerpos de petición, query string, headers, contenido de los Commands y cadenas de conexión. Los Commands y Queries se registran solo por nombre, resultado y duración.
+
+### Trazabilidad
+
+- `CorrelationIdMiddleware`: acepta `X-Correlation-Id` de 1 a 64 caracteres ASCII visibles (el largo de la columna `EventosDominio.CorrelationId`); si falta o no es válido, genera un GUID. Devuelve `X-Correlation-Id` y `X-Trace-Id` en todas las respuestas, incluidas las de error.
+- TraceId: el de W3C Trace Context que crea ASP.NET Core. Si el cliente envía `traceparent`, la API continúa esa traza.
+- Los dos valores se agregan como propiedades a todos los logs del request y aparecen en todo ProblemDetails (`traceId`, `correlationId`).
+- `RequestTimingMiddleware`: `HTTP {RequestMethod} {RequestPath} respondió {StatusCode} en {ElapsedMs} ms`, con nivel según el resultado y Warning si supera `Observability:SlowRequestThreshold`.
+- El despachador CQRS abre un span por Command o Query (`ActivitySource "MundialitoCorporativo.Application"`) con el nombre, el tipo y, si falla, el `ErrorCode`.
+- OpenTelemetry (valorable): instrumentación de ASP.NET Core y SqlClient (cubre EF Core y Dapper), spans propios de Application y exportación OTLP hacia Jaeger cuando hay endpoint configurado.
+
+### Eventos de dominio
+
+| Paso | Implementación |
+|---|---|
+| Modelado | `EquipoCreatedDomainEvent` y `PartidoResultRegisteredDomainEvent` (obligatorios), además de `JugadorRegisteredDomainEvent` y `PartidoScheduledDomainEvent`. Los agregados los generan en sus métodos de dominio. |
+| Registro | `UnitOfWork.CommitAsync` los guarda en `EventosDominio` en la misma transacción que los datos, con `TraceId` y `CorrelationId`. |
+| Despacho | Tras el commit, `IDomainEventDispatcher` (Application) entrega cada evento a sus `IDomainEventHandler<T>`. Sin bus externo. |
+| Log | El Unit of Work registra cada evento (`DomainEventId`, `DomainEventType`, agregado) y los handlers registran el hecho de negocio: `Equipo creado: {EquipoId} {NombreEquipo} ({Abreviatura})` y `Resultado registrado en el partido {PartidoId} del torneo {TorneoId}: …`. |
+| Procesado | Si todos los handlers terminan bien se guarda `FechaProcesado`. Si uno falla, la operación no se revierte (los datos ya están confirmados), el fallo se registra con nivel Error y el evento queda pendiente (`IX_EventosDominio_Pendientes`). |
+| Trazabilidad | El mismo `TraceId` une el request, los logs, el span del Command y la fila de `EventosDominio`. Consulta en `Db/013_QRY_EventosDominio.sql`. |
+
+Los handlers se ejecutan con `CancellationToken.None`: si el cliente cancela la petición después del commit, el evento igual se procesa.
+
+### Pruebas
+
+- Unitarias:
+  - `CorrelationIdMiddlewareTests`: se conserva un valor válido, se genera uno nuevo si falta o no es válido, y TraceId y CorrelationId llegan a las capas internas y a la respuesta.
+  - `RequestTimingMiddlewareTests`: el nivel según el código y el request lento; no registra la query string.
+  - `DispatcherTests`: el log del Command sin su contenido, el Warning con `ErrorCode` y un span por Command o Query.
+  - `DomainEventDispatcherTests`: los handlers de los eventos obligatorios y sus propiedades estructuradas.
+  - `UnitOfWorkTests`: el despacho después del commit, `FechaProcesado`, un handler que falla y el TraceId y CorrelationId guardados.
+- Integración (`ObservabilitySqlServerTests`, por HTTP contra SQL Server):
+  - headers en la respuesta y continuidad de un `traceparent` entrante;
+  - `traceId` y `correlationId` en ProblemDetails;
+  - la fila de `EventosDominio` con el TraceId y el CorrelationId del POST;
+  - 500 sin detalles internos.

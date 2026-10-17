@@ -98,12 +98,13 @@ Formato de error: **ProblemDetails (RFC 9457)**, incluyendo extensiones:
   "status": 409,
   "detail": "Ya existe un equipo con el nombre 'Finanzas FC'.",
   "instance": "/api/equipos",
-  "traceId": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-00",
+  "traceId": "4bf92f3577b34da6a3ce929d0e0e4736",
+  "correlationId": "6d1f0b8e-2c4a-4f7e-9a3b-5e8d7c6b4a21",
   "errorCode": "Equipo.DuplicateNombre"
 }
 ```
 
-El `correlationId` se agrega con la observabilidad (ítem 7).
+El `traceId` es el mismo del header `X-Trace-Id` y de los logs del request; el `correlationId`, el del header `X-Correlation-Id` (ítem 7).
 
 Para 400 con múltiples campos se usa `ValidationProblemDetails` con el diccionario `errors`.
 

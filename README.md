@@ -16,10 +16,10 @@ MundialitoCorporativo/
 │   ├── MundialitoCorporativo.Domain          Modelos, reglas de negocio, Result Pattern, eventos de dominio
 │   ├── MundialitoCorporativo.Application     CQRS: despachador, Commands, Queries, validaciones y contratos
 │   ├── MundialitoCorporativo.Infrastructure  EF Core, repositorios, Unit of Work y consultas Dapper
-│   └── MundialitoCorporativo.Api             Controladores REST, idempotencia, errores HTTP y composition root
+│   └── MundialitoCorporativo.Api             Controladores REST, idempotencia, observabilidad, errores HTTP y composition root
 ├── tests/
-│   ├── MundialitoCorporativo.UnitTests         Arquitectura, dominio, CQRS, Unit of Work, idempotencia y mapeo HTTP
-│   └── MundialitoCorporativo.IntegrationTests  CQRS, idempotencia y API por HTTP contra SQL Server
+│   ├── MundialitoCorporativo.UnitTests         Arquitectura, dominio, CQRS, Unit of Work, idempotencia, mapeo HTTP y observabilidad
+│   └── MundialitoCorporativo.IntegrationTests  CQRS, idempotencia, trazabilidad y API por HTTP contra SQL Server
 ├── Db/              Scripts SQL (estructura, vistas y consultas de referencia)
 ├── Analisis/        Análisis del requerimiento, un documento por ítem
 └── Documentacion/   Bitácora de cambios
@@ -75,7 +75,7 @@ Base: `http://localhost:5000/api`. En desarrollo, el documento OpenAPI está en 
 
 - **Paginación y orden** en todos los GET de colección: `pageNumber`, `pageSize` (1–100), `sortBy`, `sortDirection` (`asc`/`desc`) y filtros por entidad. Respuesta `{ data, pageNumber, pageSize, totalRecords, totalPages }`.
 - **Idempotencia**: todo POST exige el encabezado `Idempotency-Key`. Repetir la petición con la misma clave devuelve la respuesta original (`Idempotent-Replayed: true`) sin duplicar registros; la misma clave con otro cuerpo responde 409.
-- **Códigos**: 200, 201 (con `Location`), 204, 400, 404, 409 y 500. Los errores usan ProblemDetails con `errorCode` y `traceId`.
+- **Códigos**: 200, 201 (con `Location`), 204, 400, 404, 409 y 500. Los errores usan ProblemDetails con `errorCode`, `traceId` y `correlationId`.
 - **PATCH** acepta `application/merge-patch+json` o `application/json`; solo cambia los campos enviados.
 
 Ejemplo:
@@ -88,6 +88,16 @@ curl -X POST http://localhost:5000/api/equipos \
 ```
 
 Detalle de verbos, códigos e idempotencia: [Analisis/06_REST_Idempotencia.md](Analisis/06_REST_Idempotencia.md).
+
+## Observabilidad
+
+- **Logs estructurados** con Serilog sobre `ILogger<T>`: consola en JSON (texto legible en desarrollo) y archivo diario en JSON en `logs/` dentro de la carpeta desde la que se ejecuta la API. No se registran cuerpos de petición, query string ni cadenas de conexión.
+- **Trazabilidad por request**: la API acepta `X-Correlation-Id` (o genera uno) y devuelve `X-Correlation-Id` y `X-Trace-Id` (W3C Trace Context). Ambos valores están en cada log del request y en todo ProblemDetails.
+- **Duración**: un log por request, `HTTP GET /api/equipos respondió 200 en 12.3 ms`, con nivel Information, Warning (4xx o más de 500 ms) o Error (5xx).
+- **Eventos de dominio**: al crear un equipo y al registrar un resultado, el evento se guarda en `EventosDominio` con el TraceId y el CorrelationId del request, se despacha a su handler y queda en el log. Consulta en `Db/013_QRY_EventosDominio.sql`.
+- **OpenTelemetry**: con `Observability:OtlpEndpoint` configurado (por ejemplo, `http://localhost:4317` de Jaeger), se exportan las trazas de ASP.NET Core, SQL Server y los Commands/Queries.
+
+Detalle: [Analisis/07_Observabilidad_Trazabilidad.md](Analisis/07_Observabilidad_Trazabilidad.md).
 
 ## Convención de nombres
 
@@ -102,7 +112,7 @@ Los **modelos** están en español con el mismo nombre que las tablas y columnas
 | 4 | Unit of Work | Implementado y probado |
 | 5 | Result Pattern | Implementado: Result en Domain y mapeo a 200/201/204/400/404/409 con ProblemDetails |
 | 6 | REST + idempotencia | Implementado: controladores REST e `Idempotency-Key` persistida en `RegistrosIdempotencia` |
-| 7 | Observabilidad | Eventos de dominio registrados en `EventosDominio`; logging estructurado y tracing pendientes |
+| 7 | Observabilidad | Implementado: Serilog con logs JSON, CorrelationId y TraceId por request, duración de requests, eventos de dominio registrados, despachados y en el log; OpenTelemetry con exportación OTLP (Jaeger con Docker, pendiente) |
 | 8 | Requisitos funcionales | Implementado y expuesto por HTTP: torneos, equipos, jugadores por equipo, partidos, resultados, tabla de posiciones y goleadores |
 | 9 | Seed de datos | Pendiente |
 | 10 | Filtros y paginación | Implementado en todos los GET de colección (paginación en SQL, sortBy con lista blanca) |
@@ -110,6 +120,6 @@ Los **modelos** están en español con el mismo nombre que las tablas y columnas
 | 12 | Dockerización | Pendiente |
 | 13 | Diagrama de arquitectura | Pendiente |
 | 14 | Colección de Postman | Pendiente |
-| 15 | Pruebas | Todo el mínimo cubierto (tabla, puntos, diferencia de gol, Result Pattern, idempotencia, Unit of Work) más integración por HTTP: 184 pruebas |
+| 15 | Pruebas | Todo el mínimo cubierto (tabla, puntos, diferencia de gol, Result Pattern, idempotencia, Unit of Work) más integración por HTTP y observabilidad: 218 pruebas |
 
 El análisis de cada ítem está en [Analisis/](Analisis/).
