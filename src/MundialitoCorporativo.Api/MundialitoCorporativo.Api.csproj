@@ -21,6 +21,12 @@
     <ProjectReference Include="..\MundialitoCorporativo.Infrastructure\MundialitoCorporativo.Infrastructure.csproj" />
   </ItemGroup>
 
+  <!-- Los logs locales (logs/*.json) no son contenido del proyecto: no se copian a bin ni se publican. -->
+  <ItemGroup>
+    <Content Remove="logs\**" />
+    <None Remove="logs\**" />
+  </ItemGroup>
+
   <ItemGroup>
     <InternalsVisibleTo Include="MundialitoCorporativo.UnitTests" />
     <InternalsVisibleTo Include="MundialitoCorporativo.IntegrationTests" />
