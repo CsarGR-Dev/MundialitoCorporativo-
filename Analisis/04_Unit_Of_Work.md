@@ -28,7 +28,7 @@ Responsabilidades de `CommitAsync`:
 1. Recolectar los eventos de dominio pendientes de los agregados rastreados por el `ChangeTracker`.
 2. Persistir cada evento en la tabla `EventosDominio` (mismo contexto, misma transacción).
 3. Asignar campos de auditoría (`FechaCreacion`, `FechaModificacion`, shadow properties) mediante `IDateTimeProvider`.
-4. Ejecutar `SaveChangesAsync` dentro de una transacción (`BeginTransactionAsync` si no hay una activa).
+4. Guardar (`SaveChangesFromUnitOfWorkAsync`) dentro de una transacción (`BeginTransactionAsync` si no hay una activa).
 5. Confirmar la transacción.
 6. Limpiar los eventos de los agregados.
 7. Registrar cada evento en el log con propiedades estructuradas (`EventType`, `EventId`, `AggregateType`, `AggregateId`).
@@ -47,7 +47,7 @@ Las excepciones se capturan solo en este punto de frontera con la base de datos,
 
 - `MundialitoDbContext` se registra como `scoped` y solo lo usan los repositorios y el `UnitOfWork`.
 - Los repositorios **no** exponen `Save`/`SaveChanges`; solo `Add`, `Remove`, `GetByIdAsync`, `ExistsAsync`, etc.
-- `MundialitoDbContext.SaveChanges()` (síncrono) lanza `InvalidOperationException`: obliga a usar el UoW (probado en `UnitOfWorkTests`).
+- `MundialitoDbContext.SaveChanges()` y `SaveChangesAsync()` lanzan `InvalidOperationException`: obligan a usar el UoW. El único punto de guardado es `SaveChangesFromUnitOfWorkAsync` (interno), que solo invoca el `UnitOfWork`. Probado en `UnitOfWorkTests` para las dos variantes.
 - Repositorios y `UnitOfWork` son `internal`: solo Infrastructure los instancia.
 
 ## Uso en los Commands

@@ -109,8 +109,7 @@ Infrastructure/
 │   ├── MundialitoDbContext.cs
 │   ├── Configurations/ (IEntityTypeConfiguration por entidad)
 │   ├── Repositories/ (EquipoRepository, PartidoRepository, ...)
-│   ├── UnitOfWork.cs
-│   └── Migrations/
+│   └── UnitOfWork.cs
 ├── Queries/ (consultas Dapper)
 ├── Data/SqlConnectionFactory.cs
 ├── Idempotency/SqlIdempotencyStore.cs

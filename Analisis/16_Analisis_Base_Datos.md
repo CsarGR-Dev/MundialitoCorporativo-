@@ -408,9 +408,8 @@ Las entidades del dominio tienen **los mismos nombres que tablas y columnas** (v
 ## 14. Relación entre los scripts y EF Core
 
 - Los scripts de `Db/` son el **diseño de referencia** y permiten trabajar desde SSMS desde el primer día.
-- Las configuraciones de EF Core replicarán exactamente este esquema.
-- En Docker, la API crea la base con las migraciones de EF Core; las vistas y los datos de catálogo se incluyen en la migración (`migrationBuilder.Sql` / `HasData` para `PosicionesJuego`). El script de la migración se exportará a `Db/` y se comparará con estos scripts.
-- En desarrollo local se usa uno de los dos caminos, no ambos sobre la misma base.
+- Las configuraciones de EF Core replican exactamente este esquema; las pruebas de integración lo verifican contra una base creada con estos scripts.
+- **Decisión final (ítem 9):** no se usan migraciones de EF Core. Al iniciar, la API ejecuta `001` y `002` (re-ejecutables, incluidos en el ensamblado de Infrastructure) y así crea la base en Docker. El esquema tiene una sola definición. Ver `Analisis/09_Seed_Datos.md`.
 
 ---
 
@@ -453,4 +452,3 @@ Ambos scripts se ejecutaron dos veces seguidas en una base temporal (re-ejecutab
 | `003_DML_SeedInicial.sql` | Datos del ítem 9: 1 torneo, 4 equipos inscritos, 20 jugadores, 6 partidos, 3 jugados |
 | `010_QRY_TablaPosiciones.sql` | Consulta paginada de tabla de posiciones usada por Dapper |
 | `011_QRY_Goleadores.sql` | Consulta paginada de goleadores |
-| `0NN_MIG_InitialCreate.sql` | Script exportado de la migración inicial de EF Core |

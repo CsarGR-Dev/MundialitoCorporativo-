@@ -20,7 +20,7 @@ MundialitoCorporativo/
 ├── tests/
 │   ├── MundialitoCorporativo.UnitTests         Arquitectura, dominio, CQRS, Unit of Work, idempotencia, mapeo HTTP y observabilidad
 │   └── MundialitoCorporativo.IntegrationTests  CQRS, idempotencia, trazabilidad y API por HTTP contra SQL Server
-├── Db/              Scripts SQL (estructura, vistas y consultas de referencia)
+├── Db/              Scripts SQL (estructura, vistas, datos iniciales y consultas de referencia)
 ├── Analisis/        Análisis del requerimiento, un documento por ítem
 └── Documentacion/   Bitácora de cambios
 ```
@@ -34,10 +34,24 @@ Reglas de dependencia (verificadas con pruebas de arquitectura): Domain no depen
 
 ## Base de datos
 
-Ejecutar en SSMS, en orden:
+**La API prepara la base sola al iniciar:** si no existe, la crea con los scripts de `Db/` y, si está vacía, carga los datos iniciales (ítem 9). No hace falta ningún paso manual; basta con que el SQL Server de la cadena de conexión esté disponible.
+
+Datos iniciales: 1 torneo en curso (*Mundialito Corporativo 2026*), 4 equipos inscritos, 5 jugadores por equipo, 6 partidos (3 con resultado y 8 goles). La tabla de posiciones se puede consultar de inmediato:
+
+| Pos | Equipo | PJ | G | E | P | GF | GC | DG | Pts |
+|---|---|---|---|---|---|---|---|---|---|
+| 1 | Operaciones City | 2 | 1 | 1 | 0 | 4 | 1 | +3 | 4 |
+| 2 | Tecnología FC | 2 | 1 | 0 | 1 | 2 | 4 | −2 | 3 |
+| 3 | Recursos Humanos Athletic | 1 | 0 | 1 | 0 | 1 | 1 | 0 | 1 |
+| 4 | Finanzas United | 1 | 0 | 0 | 1 | 1 | 2 | −1 | 0 |
+
+Para trabajar desde SSMS sin la API, ejecutar en orden:
 
 1. `Db/001_DDL_CrearBaseDatos.sql` — base `Mundialito`: tablas, relaciones, restricciones, índices y catálogo de posiciones de juego.
 2. `Db/002_VIEW_TablaPosicionesGoleadores.sql` — vistas `vw_TablaPosiciones` y `vw_Goleadores`.
+3. `Db/003_DML_SeedInicial.sql` — los mismos datos iniciales.
+
+La sección `Database` de `appsettings.json` controla este comportamiento (`ApplySchemaOnStartup`, `SeedOnStartup`, reintentos de conexión).
 
 La cadena de conexión de desarrollo está en `src/MundialitoCorporativo.Api/appsettings.Development.json`:
 
@@ -114,12 +128,12 @@ Los **modelos** están en español con el mismo nombre que las tablas y columnas
 | 6 | REST + idempotencia | Implementado: controladores REST e `Idempotency-Key` persistida en `RegistrosIdempotencia` |
 | 7 | Observabilidad | Implementado: Serilog con logs JSON, CorrelationId y TraceId por request, duración de requests, eventos de dominio registrados, despachados y en el log; OpenTelemetry con exportación OTLP (Jaeger con Docker, pendiente) |
 | 8 | Requisitos funcionales | Implementado y expuesto por HTTP: torneos, equipos, jugadores por equipo, partidos, resultados, tabla de posiciones y goleadores |
-| 9 | Seed de datos | Pendiente |
+| 9 | Seed de datos | Implementado: al iniciar, la API crea la base con los scripts de `Db/` y, si está vacía, carga 4 equipos, 20 jugadores y 6 partidos (3 con resultado) con el dominio y el Unit of Work; script equivalente `Db/003` |
 | 10 | Filtros y paginación | Implementado en todos los GET de colección (paginación en SQL, sortBy con lista blanca) |
 | 11 | Frontend Next.js | Pendiente |
 | 12 | Dockerización | Pendiente |
 | 13 | Diagrama de arquitectura | Pendiente |
 | 14 | Colección de Postman | Pendiente |
-| 15 | Pruebas | Todo el mínimo cubierto (tabla, puntos, diferencia de gol, Result Pattern, idempotencia, Unit of Work) más integración por HTTP y observabilidad: 218 pruebas |
+| 15 | Pruebas | Todo el mínimo cubierto (tabla, puntos, diferencia de gol, Result Pattern, idempotencia, Unit of Work) más integración por HTTP, observabilidad y seed: 229 pruebas |
 
 El análisis de cada ítem está en [Analisis/](Analisis/).
