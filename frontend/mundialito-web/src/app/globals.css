@@ -1,0 +1,231 @@
+/* Estilos mínimos: el requerimiento no evalúa el diseño visual (ítem 11). */
+
+:root {
+  --color-text: #1f2933;
+  --color-muted: #616e7c;
+  --color-border: #d9e2ec;
+  --color-surface: #f5f7fa;
+  --color-primary: #0b6e4f;
+  --color-error-bg: #fdecea;
+  --color-error: #a61b1b;
+  --color-ok-bg: #e3f9e5;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color: var(--color-text);
+  line-height: 1.5;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: #fff;
+}
+
+a {
+  color: var(--color-primary);
+}
+
+.site-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem 2rem;
+  padding: 0.75rem 1.5rem;
+  background: var(--color-primary);
+}
+
+.site-header a {
+  color: #fff;
+  text-decoration: none;
+}
+
+.site-header nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+}
+
+.brand {
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+.content {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+h1 {
+  margin-top: 0;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+}
+
+th,
+td {
+  padding: 0.45rem 0.6rem;
+  border-bottom: 1px solid var(--color-border);
+  text-align: left;
+}
+
+th {
+  background: var(--color-surface);
+  white-space: nowrap;
+}
+
+th a {
+  color: inherit;
+}
+
+td.num,
+th.num {
+  text-align: right;
+}
+
+.filters,
+.torneo-selector {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.75rem;
+  margin: 1rem 0;
+  padding: 0.75rem;
+  background: var(--color-surface);
+  border-radius: 6px;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.9rem;
+}
+
+input,
+select,
+button {
+  font: inherit;
+  padding: 0.35rem 0.5rem;
+}
+
+button {
+  cursor: pointer;
+}
+
+button.primary {
+  background: var(--color-primary);
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 0.5rem 1rem;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.pagination {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  justify-content: center;
+}
+
+.pagination .disabled {
+  color: var(--color-muted);
+}
+
+.alert {
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  margin: 1rem 0;
+}
+
+.alert p,
+.alert ul {
+  margin: 0.4rem 0 0;
+}
+
+.alert-error {
+  background: var(--color-error-bg);
+  color: var(--color-error);
+}
+
+.alert-ok {
+  background: var(--color-ok-bg);
+}
+
+.muted {
+  color: var(--color-muted);
+}
+
+.small {
+  font-size: 0.85rem;
+}
+
+.empty {
+  padding: 1rem;
+  text-align: center;
+  color: var(--color-muted);
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  background: var(--color-surface);
+}
+
+.badge-jugado {
+  background: var(--color-ok-bg);
+}
+
+.badge-cancelado {
+  background: var(--color-error-bg);
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.card {
+  display: block;
+  padding: 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.card strong {
+  color: var(--color-primary);
+}
+
+fieldset {
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  margin: 1rem 0;
+}
+
+.gol-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: 0.5rem 0;
+}
+
+.field-error {
+  color: var(--color-error);
+  font-size: 0.85rem;
+}
