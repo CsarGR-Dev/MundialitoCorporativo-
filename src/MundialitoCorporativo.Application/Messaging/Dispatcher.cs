@@ -1,7 +1,10 @@
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using MundialitoCorporativo.Application.Abstractions.Messaging;
+using MundialitoCorporativo.Application.Common.Observability;
 using MundialitoCorporativo.Domain.Common;
 
 namespace MundialitoCorporativo.Application.Messaging;
@@ -9,9 +12,13 @@ namespace MundialitoCorporativo.Application.Messaging;
 /// <summary>
 /// Despachador CQRS propio: resuelve el handler del Command o Query desde el contenedor,
 /// ejecuta antes sus validadores y devuelve un <see cref="ValidationError"/> si la entrada no es válida.
+/// Cada ejecución abre un span en la traza del request y registra su resultado y duración.
 /// </summary>
-internal sealed class Dispatcher(IServiceProvider serviceProvider) : IDispatcher
+internal sealed partial class Dispatcher(IServiceProvider serviceProvider, ILogger<Dispatcher> logger) : IDispatcher
 {
+    private const string CommandKind = "Command";
+    private const string QueryKind = "Query";
+
     private static readonly ConcurrentDictionary<Type, object> Executors = new();
 
     public Task<Result> Send(ICommand command, CancellationToken cancellationToken = default)
@@ -20,7 +27,7 @@ internal sealed class Dispatcher(IServiceProvider serviceProvider) : IDispatcher
             command.GetType(),
             commandType => Activator.CreateInstance(typeof(CommandExecutor<>).MakeGenericType(commandType))!);
 
-        return executor.Execute(command, serviceProvider, cancellationToken);
+        return ObserveAsync(CommandKind, command.GetType(), () => executor.Execute(command, serviceProvider, cancellationToken));
     }
 
     public Task<Result<TResponse>> Send<TResponse>(ICommand<TResponse> command, CancellationToken cancellationToken = default)
@@ -29,7 +36,7 @@ internal sealed class Dispatcher(IServiceProvider serviceProvider) : IDispatcher
             command.GetType(),
             commandType => Activator.CreateInstance(typeof(CommandExecutor<,>).MakeGenericType(commandType, typeof(TResponse)))!);
 
-        return executor.Execute(command, serviceProvider, cancellationToken);
+        return ObserveAsync(CommandKind, command.GetType(), () => executor.Execute(command, serviceProvider, cancellationToken));
     }
 
     public Task<Result<TResponse>> Query<TResponse>(IQuery<TResponse> query, CancellationToken cancellationToken = default)
@@ -38,8 +45,61 @@ internal sealed class Dispatcher(IServiceProvider serviceProvider) : IDispatcher
             query.GetType(),
             queryType => Activator.CreateInstance(typeof(QueryExecutor<,>).MakeGenericType(queryType, typeof(TResponse)))!);
 
-        return executor.Execute(query, serviceProvider, cancellationToken);
+        return ObserveAsync(QueryKind, query.GetType(), () => executor.Execute(query, serviceProvider, cancellationToken));
     }
+
+    /// <summary>
+    /// Solo se registran el nombre del Command o Query, el resultado y la duración; nunca su contenido.
+    /// </summary>
+    private async Task<TResult> ObserveAsync<TResult>(string kind, Type requestType, Func<Task<TResult>> execute)
+        where TResult : Result
+    {
+        var requestName = requestType.Name;
+        using var activity = ApplicationDiagnostics.ActivitySource.StartActivity($"{kind} {requestName}");
+        activity?.SetTag("mundialito.request.kind", kind);
+        activity?.SetTag("mundialito.request.name", requestName);
+
+        var startedAt = Stopwatch.GetTimestamp();
+        TResult result;
+        try
+        {
+            result = await execute();
+        }
+        catch (Exception exception)
+        {
+            activity?.SetStatus(ActivityStatusCode.Error, exception.GetType().Name);
+            activity?.AddException(exception);
+            throw;
+        }
+
+        var elapsedMs = Math.Round(Stopwatch.GetElapsedTime(startedAt).TotalMilliseconds, 1);
+
+        if (result.IsFailure)
+        {
+            activity?.SetTag("mundialito.error.type", result.Error.Type.ToString());
+            activity?.SetTag("mundialito.error.code", result.ErrorCode);
+            LogRequestFailed(logger, kind, requestName, result.Error.Type, result.ErrorCode, elapsedMs);
+        }
+        else if (kind == CommandKind)
+        {
+            LogCommandSucceeded(logger, requestName, elapsedMs);
+        }
+        else
+        {
+            LogQuerySucceeded(logger, requestName, elapsedMs);
+        }
+
+        return result;
+    }
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Command {RequestName} ejecutado en {ElapsedMs} ms")]
+    private static partial void LogCommandSucceeded(ILogger logger, string requestName, double elapsedMs);
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "Query {RequestName} ejecutada en {ElapsedMs} ms")]
+    private static partial void LogQuerySucceeded(ILogger logger, string requestName, double elapsedMs);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "{RequestKind} {RequestName} terminó con error {ErrorType} {ErrorCode} en {ElapsedMs} ms")]
+    private static partial void LogRequestFailed(ILogger logger, string requestKind, string requestName, ErrorType errorType, string? errorCode, double elapsedMs);
 
     private static async Task<ValidationError?> ValidateAsync<TRequest>(TRequest request, IServiceProvider provider, CancellationToken cancellationToken)
     {

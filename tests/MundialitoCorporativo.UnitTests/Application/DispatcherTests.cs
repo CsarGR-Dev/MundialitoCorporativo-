@@ -1,8 +1,13 @@
+using System.Collections.Concurrent;
+using System.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Testing;
 using MundialitoCorporativo.Application;
 using MundialitoCorporativo.Application.Abstractions.Messaging;
 using MundialitoCorporativo.Application.Abstractions.Persistence;
 using MundialitoCorporativo.Application.Abstractions.Queries;
+using MundialitoCorporativo.Application.Common.Observability;
 using MundialitoCorporativo.Application.Common.Paging;
 using MundialitoCorporativo.Application.Equipos;
 using MundialitoCorporativo.Application.Equipos.Commands;
@@ -18,15 +23,19 @@ public class DispatcherTests
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
     private readonly IEquipoQueries _equipoQueries = Substitute.For<IEquipoQueries>();
     private readonly IDispatcher _dispatcher;
+    private readonly FakeLogCollector _logs;
 
     public DispatcherTests()
     {
         var services = new ServiceCollection();
+        services.AddFakeLogging();
         services.AddApplication();
         services.AddSingleton(_equipoRepository);
         services.AddSingleton(_unitOfWork);
         services.AddSingleton(_equipoQueries);
-        _dispatcher = services.BuildServiceProvider().CreateScope().ServiceProvider.GetRequiredService<IDispatcher>();
+        var provider = services.BuildServiceProvider();
+        _dispatcher = provider.CreateScope().ServiceProvider.GetRequiredService<IDispatcher>();
+        _logs = provider.GetFakeLogCollector();
     }
 
     [Fact]
@@ -85,5 +94,55 @@ public class DispatcherTests
         Assert.True(result.IsSuccess);
         Assert.Same(expected, result.Value);
         Assert.Equal(3, result.Value.TotalPages);
+    }
+
+    [Fact]
+    public async Task Send_WithValidCommand_ShouldLogInformationWithNameAndDurationOnly()
+    {
+        _unitOfWork.CommitAsync(Arg.Any<CancellationToken>()).Returns(Result.Success());
+
+        await _dispatcher.Send(new CreateEquipoCommand("Tecnología FC", "TEC", null));
+
+        var record = Assert.Single(_logs.GetSnapshot(), log => log.Category!.EndsWith(".Dispatcher", StringComparison.Ordinal));
+        Assert.Equal(LogLevel.Information, record.Level);
+        Assert.Equal(nameof(CreateEquipoCommand), record.GetStructuredStateValue("RequestName"));
+        Assert.NotNull(record.GetStructuredStateValue("ElapsedMs"));
+        Assert.DoesNotContain("Tecnología FC", record.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Send_WhenResultFails_ShouldLogWarningWithErrorCode()
+    {
+        await _dispatcher.Send(new CreateEquipoCommand("", "T", null));
+
+        var record = Assert.Single(_logs.GetSnapshot(), log => log.Category!.EndsWith(".Dispatcher", StringComparison.Ordinal));
+        Assert.Equal(LogLevel.Warning, record.Level);
+        Assert.Equal(ValidationError.DefaultCode, record.GetStructuredStateValue("ErrorCode"));
+        Assert.Equal(nameof(ErrorType.Validation), record.GetStructuredStateValue("ErrorType"));
+    }
+
+    [Fact]
+    public async Task SendAndQuery_ShouldOpenOneSpanPerRequestInTheCurrentTrace()
+    {
+        var stopped = new ConcurrentBag<Activity>();
+        using var listener = new ActivityListener
+        {
+            ShouldListenTo = source => source.Name == ApplicationDiagnostics.ActivitySourceName,
+            Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllDataAndRecorded,
+            ActivityStopped = stopped.Add
+        };
+        ActivitySource.AddActivityListener(listener);
+        _equipoQueries.GetPagedAsync(Arg.Any<GetEquiposQuery>(), Arg.Any<CancellationToken>()).Returns(new PagedResponse<EquipoResponse>([], 1, 10, 0));
+
+        using var request = new Activity("GET /api/equipos").SetIdFormat(ActivityIdFormat.W3C).Start();
+        await _dispatcher.Query(new GetEquiposQuery());
+        await _dispatcher.Send(new CreateEquipoCommand("", "T", null));
+
+        var spans = stopped.Where(span => span.TraceId == request.TraceId).ToList();
+        var query = Assert.Single(spans, span => span.DisplayName == $"Query {nameof(GetEquiposQuery)}");
+        var command = Assert.Single(spans, span => span.DisplayName == $"Command {nameof(CreateEquipoCommand)}");
+        Assert.Equal(request.SpanId, query.ParentSpanId);
+        Assert.Null(query.GetTagItem("mundialito.error.code"));
+        Assert.Equal(ValidationError.DefaultCode, command.GetTagItem("mundialito.error.code"));
     }
 }

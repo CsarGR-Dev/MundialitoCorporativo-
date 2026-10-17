@@ -11,15 +11,18 @@ public static class DependencyInjection
     [
         typeof(ICommandHandler<>),
         typeof(ICommandHandler<,>),
-        typeof(IQueryHandler<,>)
+        typeof(IQueryHandler<,>),
+        typeof(IDomainEventHandler<>)
     ];
 
     /// <summary>
-    /// Registra los servicios de la capa Application: despachador CQRS, handlers de Commands y Queries y validadores.
+    /// Registra los servicios de la capa Application: despachador CQRS, handlers de Commands, Queries
+    /// y eventos de dominio, y validadores.
     /// </summary>
     public static IServiceCollection AddApplication(this IServiceCollection services)
     {
         services.AddScoped<IDispatcher, Dispatcher>();
+        services.AddScoped<IDomainEventDispatcher, DomainEventDispatcher>();
 
         var handlerRegistrations = AssemblyReference.Assembly.GetTypes()
             .Where(type => type is { IsAbstract: false, IsInterface: false })
