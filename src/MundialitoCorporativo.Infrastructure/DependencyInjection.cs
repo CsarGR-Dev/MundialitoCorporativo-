@@ -2,10 +2,12 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using MundialitoCorporativo.Application.Abstractions.Data;
+using MundialitoCorporativo.Application.Abstractions.Idempotency;
 using MundialitoCorporativo.Application.Abstractions.Persistence;
 using MundialitoCorporativo.Application.Abstractions.Queries;
 using MundialitoCorporativo.Application.Abstractions.Time;
 using MundialitoCorporativo.Infrastructure.Data;
+using MundialitoCorporativo.Infrastructure.Idempotency;
 using MundialitoCorporativo.Infrastructure.Persistence;
 using MundialitoCorporativo.Infrastructure.Persistence.Repositories;
 using MundialitoCorporativo.Infrastructure.Queries;
@@ -46,6 +48,11 @@ public static class DependencyInjection
         services.AddScoped<IJugadorQueries, JugadorQueries>();
         services.AddScoped<IPartidoQueries, PartidoQueries>();
         services.AddScoped<IPosicionJuegoQueries, PosicionJuegoQueries>();
+
+        // Idempotencia de POST: almacenamiento de Idempotency-Key y limpieza periódica.
+        services.Configure<IdempotencyOptions>(configuration.GetSection(IdempotencyOptions.SectionName));
+        services.AddScoped<IIdempotencyStore, SqlIdempotencyStore>();
+        services.AddHostedService<IdempotencyCleanupService>();
 
         services.AddSingleton<IDateTimeProvider, SystemDateTimeProvider>();
 
