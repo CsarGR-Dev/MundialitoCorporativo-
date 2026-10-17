@@ -31,6 +31,9 @@ public static class TorneoErrors
     public static readonly Error EquipoNotRegistered =
         Error.Validation("El equipo no está inscrito en el torneo.", "Torneo.EquipoNotRegistered");
 
+    public static Error InscripcionNotFound(Guid equipoId) =>
+        Error.NotFound($"El equipo '{equipoId}' no está inscrito en el torneo.", "Torneo.InscripcionNotFound");
+
     public static readonly Error EquipoHasPartidos =
         Error.Conflict("El equipo tiene partidos en el torneo y no puede retirarse.", "Torneo.EquipoHasPartidos");
 

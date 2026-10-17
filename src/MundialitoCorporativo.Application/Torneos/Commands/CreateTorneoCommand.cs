@@ -14,6 +14,7 @@ internal sealed class CreateTorneoCommandValidator : AbstractValidator<CreateTor
     {
         RuleFor(command => command.Nombre).NotEmpty().Length(Torneo.NombreMinLength, Torneo.NombreMaxLength);
         RuleFor(command => command.Descripcion).MaximumLength(Torneo.DescripcionMaxLength);
+        RuleFor(command => command.FechaInicio).NotEmpty();
         RuleFor(command => command.FechaFin)
             .GreaterThanOrEqualTo(command => command.FechaInicio)
             .When(command => command.FechaFin is not null)

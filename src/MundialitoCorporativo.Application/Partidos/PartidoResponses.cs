@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace MundialitoCorporativo.Application.Partidos;
 
 public record PartidoResponse
@@ -31,6 +33,8 @@ public record PartidoResponse
 
 public sealed record PartidoDetalleResponse : PartidoResponse
 {
+    // En JSON, la lista de goles va después de los datos del partido.
+    [JsonPropertyOrder(1)]
     public IReadOnlyList<GolResponse> Goles { get; init; } = [];
 }
 

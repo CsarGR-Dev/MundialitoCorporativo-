@@ -20,6 +20,12 @@ internal sealed class WithdrawEquipoFromTorneoCommandHandler(
             return TorneoErrors.NotFound(command.TorneoId);
         }
 
+        // DELETE de una inscripción inexistente: 404 (el recurso no existe; el estado final es el mismo).
+        if (!torneo.IsEquipoRegistered(command.EquipoId))
+        {
+            return TorneoErrors.InscripcionNotFound(command.EquipoId);
+        }
+
         if (await partidoRepository.ExistsForEquipoInTorneoAsync(command.TorneoId, command.EquipoId, cancellationToken))
         {
             return TorneoErrors.EquipoHasPartidos;
