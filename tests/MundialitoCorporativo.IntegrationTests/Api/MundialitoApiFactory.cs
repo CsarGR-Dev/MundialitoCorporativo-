@@ -16,6 +16,10 @@ internal sealed class MundialitoApiFactory(string connectionString) : WebApplica
 
         // Varias instancias de la API corren en el mismo proceso: sin archivo de log compartido.
         builder.UseSetting("Observability:LogFilePath", "");
+
+        // La base temporal ya tiene el esquema y cada prueba crea sus propios datos.
+        builder.UseSetting("Database:ApplySchemaOnStartup", "false");
+        builder.UseSetting("Database:SeedOnStartup", "false");
     }
 }
 

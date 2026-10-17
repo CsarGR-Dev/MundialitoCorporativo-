@@ -15,6 +15,9 @@ builder.Services
 
 var app = builder.Build();
 
+// Base lista antes de atender peticiones: esquema de Db/ y seed si está vacía (ítem 9).
+await app.Services.InitializeDatabaseAsync();
+
 // CorrelationId, TraceId y duración de cada request (incluye las respuestas de error).
 app.UseRequestObservability();
 
