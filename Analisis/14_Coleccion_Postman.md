@@ -110,3 +110,35 @@ newman run postman/MundialitoCorporativo.postman_collection.json -e postman/Mund
 - [ ] Carpetas específicas de idempotencia, paginación/filtros y errores.
 - [ ] Ninguna URL fija: todo usa `{{baseUrl}}` y variables.
 - [ ] La colección corre completa en verde contra el entorno Docker recién levantado.
+
+## Implementación real
+
+Archivos en `Postman/`: la colección (64 requests en 10 carpetas), el entorno `Mundialito Local` y un `README.md` con el uso.
+
+### Ajustes respecto al diseño inicial
+
+| Diseño inicial | Implementado | Motivo |
+|---|---|---|
+| Carpeta `postman/` | `Postman/` | Mismo estilo que `Db/`, `Analisis/` y `Documentacion/`. |
+| Entorno `Mundialito.Docker` | Se agrega con la dockerización (ítem 12) | El puerto de la API en Docker se define en ese paso. |
+| `00 Health` con `GET /health` | `00 Datos del seed` | La API no tiene endpoint de health todavía. La primera carpeta verifica el seed: torneo, tabla esperada, goleador líder y partidos programados. |
+| Carpetas por recurso con Torneos al final | `01 Torneos` primero | El flujo crea primero el torneo y luego inscribe equipos, programa partidos y registra el resultado. Así la colección se ejecuta completa en orden. |
+| Ids sueltos (`equipoId`, `matchId`) | Variables de colección con nombres del dominio (`equipoLocalId`, `partidoId`, …) | Se capturan en las pruebas de cada request. |
+| Datos fijos | Sufijo único por ejecución, generado en el primer request | La colección se puede ejecutar varias veces sin chocar con datos anteriores y sin cambiar la tabla del seed. |
+
+### Pruebas
+
+- Cada request valida su código HTTP y lo relevante del cuerpo: formato paginado, `errorCode`, orden, conteos y el header `Idempotent-Replayed`.
+- A nivel de colección, toda respuesta debe traer `X-Correlation-Id` y `X-Trace-Id`, y todo error debe ser `application/problem+json` con `traceId`.
+- Validación con Newman contra la API y la base del seed: 64 requests, 215 aserciones, sin fallos, en dos ejecuciones seguidas.
+
+### Criterios del requerimiento
+
+| Pide | Dónde |
+|---|---|
+| Endpoints organizados | Carpetas 00 a 04 y 09 (todos los recursos y verbos) |
+| Idempotencia | Carpeta 05 (más el PUT repetido en 01 y el DELETE repetido en 09) |
+| Filtros | Carpetas 06 y 01 a 03 (nombre, estado, equipo, posición, fecha) |
+| Paginación | Carpeta 06 (páginas, tamaño, orden, fuera de rango) y la validación del formato en cada GET de colección |
+| Errores | Carpeta 07 (400, 404, 409) y 08 (traceId y correlationId en el error) |
+| Variables de entorno | `baseUrl` en el entorno; ids y claves como variables de colección |

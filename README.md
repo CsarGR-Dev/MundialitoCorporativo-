@@ -21,6 +21,7 @@ MundialitoCorporativo/
 │   ├── MundialitoCorporativo.UnitTests         Arquitectura, dominio, CQRS, Unit of Work, idempotencia, mapeo HTTP y observabilidad
 │   └── MundialitoCorporativo.IntegrationTests  CQRS, idempotencia, trazabilidad y API por HTTP contra SQL Server
 ├── Db/              Scripts SQL (estructura, vistas, datos iniciales y consultas de referencia)
+├── Postman/         Colección y entorno de Postman
 ├── Analisis/        Análisis del requerimiento, un documento por ítem
 └── Documentacion/   Bitácora de cambios
 ```
@@ -103,6 +104,8 @@ curl -X POST http://localhost:5000/api/equipos \
 
 Detalle de verbos, códigos e idempotencia: [Analisis/06_REST_Idempotencia.md](Analisis/06_REST_Idempotencia.md).
 
+**Postman:** importar `Postman/MundialitoCorporativo.postman_collection.json` y el entorno `Postman/Mundialito.Local.postman_environment.json`, y ejecutar la colección en orden. Tiene 64 requests con pruebas y cubre idempotencia, filtros, paginación, errores y trazabilidad. Desde la terminal: `npx newman run Postman/MundialitoCorporativo.postman_collection.json -e Postman/Mundialito.Local.postman_environment.json`. Detalle en [Postman/README.md](Postman/README.md).
+
 ## Observabilidad
 
 - **Logs estructurados** con Serilog sobre `ILogger<T>`: consola en JSON (texto legible en desarrollo) y archivo diario en JSON en `logs/` dentro de la carpeta desde la que se ejecuta la API. No se registran cuerpos de petición, query string ni cadenas de conexión.
@@ -133,7 +136,7 @@ Los **modelos** están en español con el mismo nombre que las tablas y columnas
 | 11 | Frontend Next.js | Pendiente |
 | 12 | Dockerización | Pendiente |
 | 13 | Diagrama de arquitectura | Pendiente |
-| 14 | Colección de Postman | Pendiente |
+| 14 | Colección de Postman | Implementado: 64 requests en 10 carpetas con pruebas (idempotencia, filtros, paginación, errores, trazabilidad) y entorno local; validada con Newman |
 | 15 | Pruebas | Todo el mínimo cubierto (tabla, puntos, diferencia de gol, Result Pattern, idempotencia, Unit of Work) más integración por HTTP, observabilidad y seed: 229 pruebas |
 
 El análisis de cada ítem está en [Analisis/](Analisis/).
