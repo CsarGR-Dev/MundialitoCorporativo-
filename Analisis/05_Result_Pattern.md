@@ -64,44 +64,46 @@ public sealed class Result<T> : Result
 ```csharp
 public static class EquipoErrors
 {
-    public static Error NoEncontrado(Guid id) =>
-        Error.NoEncontrado($"No existe el equipo '{id}'.", "Equipo.NoEncontrado");
+    public static Error NotFound(Guid id) =>
+        Error.NotFound($"No existe el equipo '{id}'.", "Equipo.NotFound");
 
-    public static Error NombreDuplicado(string nombre) =>
-        Error.Conflicto($"Ya existe un equipo con el nombre '{nombre}'.", "Equipo.DuplicateNombre");
+    public static Error DuplicateNombre(string nombre) =>
+        Error.Conflict($"Ya existe un equipo con el nombre '{nombre}'.", "Equipo.DuplicateNombre");
 
-    public static readonly Error TienePartidos =
-        Error.Conflicto("El equipo tiene partidos asociados y no puede eliminarse.", "Equipo.TienePartidos");
+    public static readonly Error HasPartidos =
+        Error.Conflict("El equipo tiene partidos asociados y no puede eliminarse.", "Equipo.HasPartidos");
 }
 ```
 
-Catálogos equivalentes: `TorneoErrors`, `JugadorErrors`, `PartidoErrors`, `PosicionJuegoErrors` y, más adelante, `IdempotencyErrors`.
+Catálogos equivalentes: `TorneoErrors`, `JugadorErrors`, `PartidoErrors`, `PosicionJuegoErrors` (Domain) e `IdempotencyErrors` (Api, porque la idempotencia es un asunto HTTP).
 
-## Mapeo a HTTP (Api/Extensions/ResultExtensions.cs)
+## Mapeo a HTTP (Api/Http/ErrorHttpMapping.cs y ApiProblemDetails.cs)
 
 | Situación | Código HTTP |
 |---|---|
 | GET exitoso, PUT/PATCH exitoso con cuerpo | 200 OK |
 | POST exitoso | 201 Created + header `Location` |
-| DELETE exitoso / PUT-PATCH sin cuerpo | 204 No Content |
+| DELETE exitoso | 204 No Content |
 | `ErrorType.Validation` | 400 Bad Request |
 | `ErrorType.NotFound` | 404 Not Found |
 | `ErrorType.Conflict` | 409 Conflict |
-| `ErrorType.Failure` | 500 (error técnico controlado) |
+| `ErrorType.Failure` (y `None`, que sería un error de programación) | 500 (error técnico controlado) |
 
 Formato de error: **ProblemDetails (RFC 9457)**, incluyendo extensiones:
 
 ```json
 {
-  "type": "https://httpstatuses.io/409",
+  "type": "https://tools.ietf.org/html/rfc9110#section-15.5.10",
   "title": "Conflict",
   "status": 409,
   "detail": "Ya existe un equipo con el nombre 'Finanzas FC'.",
-  "errorCode": "Equipo.DuplicateNombre",
-  "traceId": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01",
-  "correlationId": "f2c1e7f0-..."
+  "instance": "/api/equipos",
+  "traceId": "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-00",
+  "errorCode": "Equipo.DuplicateNombre"
 }
 ```
+
+El `correlationId` se agrega con la observabilidad (ítem 7).
 
 Para 400 con múltiples campos se usa `ValidationProblemDetails` con el diccionario `errors`.
 
@@ -109,7 +111,8 @@ Para 400 con múltiples campos se usa `ValidationProblemDetails` con el dicciona
 
 - Métodos de dominio devuelven `Result` / `Result<T>`.
 - Handlers devuelven `Result` / `Result<T>`.
-- Controladores solo traducen el `Result` a respuesta HTTP mediante un método de extensión (`ToActionResult`, `ToCreatedResult`).
+- Controladores solo traducen el `Result` a respuesta HTTP con los métodos de `ApiController` (`QueryAsync`, `CreatedAsync`, `SendThenQueryAsync`, `SendNoContentAsync`, `ErrorResult`).
+- Los errores de formato que detecta MVC antes del despachador (JSON mal formado, texto en un campo numérico) responden con el mismo formato: 400, `ValidationProblemDetails` y `errorCode = Validation.Failed`.
 - El middleware global de excepciones solo atrapa errores **inesperados** (500) y los registra con nivel Error.
 
 ## Pruebas requeridas (ver ítem 15)
@@ -127,3 +130,11 @@ Para 400 con múltiples campos se usa `ValidationProblemDetails` con el dicciona
 - [ ] Ningún `throw` en handlers ni entidades para reglas de negocio.
 - [ ] Los cinco códigos HTTP exigidos se producen en escenarios reales reproducibles en Postman.
 - [ ] Respuestas de error con ProblemDetails, `errorCode` y `traceId`.
+
+## Implementación real
+
+- **Result Pattern** en `Domain/Common/` (`Result`, `Result<T>`, `Error`, `ErrorType`, `ValidationError`); los catálogos de errores viven junto a cada modelo (`EquipoErrors`, `TorneoErrors`, …).
+- **Mapeo a HTTP**: `Api/Http/ErrorHttpMapping.cs` (tipo de error → código) y `Api/Http/ApiProblemDetails.cs` (ProblemDetails con `errorCode`, `traceId` e `instance`; `ValidationProblemDetails` con `errors` por campo).
+- **Controladores**: heredan de `Api/Controllers/ApiController.cs`, cuyos métodos convierten el `Result` en 200, 201 (con `Location`), 204 o el error correspondiente. No hay `try/catch` en los controladores.
+- **Errores inesperados**: `Api/Http/GlobalExceptionHandler.cs` (`IExceptionHandler`) los registra con nivel Error y responde 500 sin exponer detalles internos (`errorCode = Server.Unexpected`).
+- **Pruebas**: `UnitTests/Api/ErrorHttpMappingTests.cs` (cada `ErrorType` y formato ProblemDetails) e `IntegrationTests/Api/ApiSqlServerTests.cs` (400, 404 y 409 reales por HTTP).

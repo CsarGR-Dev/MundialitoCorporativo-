@@ -16,10 +16,10 @@ MundialitoCorporativo/
 │   ├── MundialitoCorporativo.Domain          Modelos, reglas de negocio, Result Pattern, eventos de dominio
 │   ├── MundialitoCorporativo.Application     CQRS: despachador, Commands, Queries, validaciones y contratos
 │   ├── MundialitoCorporativo.Infrastructure  EF Core, repositorios, Unit of Work y consultas Dapper
-│   └── MundialitoCorporativo.Api             Composition root y endpoints REST
+│   └── MundialitoCorporativo.Api             Controladores REST, idempotencia, errores HTTP y composition root
 ├── tests/
-│   ├── MundialitoCorporativo.UnitTests         Arquitectura, dominio, CQRS y Unit of Work
-│   └── MundialitoCorporativo.IntegrationTests  Commands y Queries contra SQL Server
+│   ├── MundialitoCorporativo.UnitTests         Arquitectura, dominio, CQRS, Unit of Work, idempotencia y mapeo HTTP
+│   └── MundialitoCorporativo.IntegrationTests  CQRS, idempotencia y API por HTTP contra SQL Server
 ├── Db/              Scripts SQL (estructura, vistas y consultas de referencia)
 ├── Analisis/        Análisis del requerimiento, un documento por ítem
 └── Documentacion/   Bitácora de cambios
@@ -55,7 +55,39 @@ dotnet test
 dotnet run --project src/MundialitoCorporativo.Api      # http://localhost:5000
 ```
 
-Las pruebas de integración crean una base temporal ejecutando `Db/001` y la eliminan al terminar. Usan la instancia local por defecto; otra instancia se indica con la variable de entorno `MUNDIALITO_TEST_SQLSERVER`. Si no hay un SQL Server disponible, se omiten.
+Las pruebas de integración (incluida la API completa con `WebApplicationFactory`) crean una base temporal ejecutando `Db/001` y la eliminan al terminar. Usan la instancia local por defecto; otra instancia se indica con la variable de entorno `MUNDIALITO_TEST_SQLSERVER`. Si no hay un SQL Server disponible, se omiten.
+
+## API REST
+
+Base: `http://localhost:5000/api`. En desarrollo, el documento OpenAPI está en `/openapi/v1.json`.
+
+| Recurso | Operaciones |
+|---|---|
+| `/torneos` | GET (paginado), POST · `/{id}`: GET, PUT, PATCH, DELETE |
+| `/torneos/{id}/equipos` | GET, POST (inscribir) · `/{equipoId}`: DELETE (retirar) |
+| `/torneos/{id}/partidos`, `/tabla-posiciones`, `/goleadores` | GET (paginado) |
+| `/equipos` | GET (paginado), POST · `/{id}`: GET, PUT, PATCH, DELETE |
+| `/equipos/{id}/jugadores` | GET (integrantes), POST (registrar integrante) |
+| `/jugadores` | GET (paginado) · `/{id}`: GET, PUT, PATCH, DELETE |
+| `/partidos` | GET (paginado), POST · `/{id}`: GET, PUT, PATCH, DELETE |
+| `/partidos/{id}/resultado` | POST (registrar resultado y goleadores) |
+| `/posiciones-juego` | GET |
+
+- **Paginación y orden** en todos los GET de colección: `pageNumber`, `pageSize` (1–100), `sortBy`, `sortDirection` (`asc`/`desc`) y filtros por entidad. Respuesta `{ data, pageNumber, pageSize, totalRecords, totalPages }`.
+- **Idempotencia**: todo POST exige el encabezado `Idempotency-Key`. Repetir la petición con la misma clave devuelve la respuesta original (`Idempotent-Replayed: true`) sin duplicar registros; la misma clave con otro cuerpo responde 409.
+- **Códigos**: 200, 201 (con `Location`), 204, 400, 404, 409 y 500. Los errores usan ProblemDetails con `errorCode` y `traceId`.
+- **PATCH** acepta `application/merge-patch+json` o `application/json`; solo cambia los campos enviados.
+
+Ejemplo:
+
+```bash
+curl -X POST http://localhost:5000/api/equipos \
+  -H "Content-Type: application/json" \
+  -H "Idempotency-Key: 6f1c2a54-3d0e-4b7a-9c61-2f8e5d4a1b90" \
+  -d '{"nombre":"Tecnología FC","abreviatura":"TEC","departamento":"Sistemas"}'
+```
+
+Detalle de verbos, códigos e idempotencia: [Analisis/06_REST_Idempotencia.md](Analisis/06_REST_Idempotencia.md).
 
 ## Convención de nombres
 
@@ -68,16 +100,16 @@ Los **modelos** están en español con el mismo nombre que las tablas y columnas
 | 2 | Clean Architecture | Implementado: 4 capas y pruebas de arquitectura |
 | 3 | CQRS | Implementado: despachador, Commands (EF Core + Unit of Work) y Queries (Dapper) |
 | 4 | Unit of Work | Implementado y probado |
-| 5 | Result Pattern | Implementado en Domain; mapeo a HTTP pendiente |
-| 6 | REST + idempotencia | Pendiente |
+| 5 | Result Pattern | Implementado: Result en Domain y mapeo a 200/201/204/400/404/409 con ProblemDetails |
+| 6 | REST + idempotencia | Implementado: controladores REST e `Idempotency-Key` persistida en `RegistrosIdempotencia` |
 | 7 | Observabilidad | Eventos de dominio registrados en `EventosDominio`; logging estructurado y tracing pendientes |
-| 8 | Requisitos funcionales | Torneos, equipos, jugadores, partidos, resultados, tabla de posiciones y goleadores implementados en Application; endpoints pendientes |
+| 8 | Requisitos funcionales | Implementado y expuesto por HTTP: torneos, equipos, jugadores por equipo, partidos, resultados, tabla de posiciones y goleadores |
 | 9 | Seed de datos | Pendiente |
-| 10 | Filtros y paginación | Implementado en Application e Infrastructure (paginación en SQL, sortBy con lista blanca); endpoints pendientes |
+| 10 | Filtros y paginación | Implementado en todos los GET de colección (paginación en SQL, sortBy con lista blanca) |
 | 11 | Frontend Next.js | Pendiente |
 | 12 | Dockerización | Pendiente |
 | 13 | Diagrama de arquitectura | Pendiente |
 | 14 | Colección de Postman | Pendiente |
-| 15 | Pruebas | Tabla de posiciones, puntos, diferencia de gol, Result Pattern, Unit of Work y CQRS cubiertos (unitarias e integración); idempotencia pendiente |
+| 15 | Pruebas | Todo el mínimo cubierto (tabla, puntos, diferencia de gol, Result Pattern, idempotencia, Unit of Work) más integración por HTTP: 184 pruebas |
 
 El análisis de cada ítem está en [Analisis/](Analisis/).
