@@ -1,5 +1,6 @@
 using MundialitoCorporativo.Api;
 using MundialitoCorporativo.Api.Idempotency;
+using MundialitoCorporativo.Api.Observability;
 using MundialitoCorporativo.Application;
 using MundialitoCorporativo.Infrastructure;
 
@@ -7,11 +8,15 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Composition root: cada capa registra sus propios servicios.
 builder.Services
+    .AddObservability(builder.Configuration)
     .AddApplication()
     .AddInfrastructure(builder.Configuration)
     .AddPresentation();
 
 var app = builder.Build();
+
+// CorrelationId, TraceId y duración de cada request (incluye las respuestas de error).
+app.UseRequestObservability();
 
 // Errores inesperados → 500 en ProblemDetails; respuestas vacías de error (404 de ruta, 405) → ProblemDetails.
 app.UseExceptionHandler();

@@ -2,6 +2,7 @@ using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.Unicode;
+using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Formatters;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
@@ -40,8 +41,12 @@ public static class DependencyInjection
             options.InputFormatters.OfType<SystemTextJsonInputFormatter>().First().SupportedMediaTypes.Add(MediaTypes.MergePatchJson));
 
         services.ConfigureHttpJsonOptions(options => ConfigureJson(options.SerializerOptions));
-        services.AddProblemDetails();
+        services.AddProblemDetails(options => options.CustomizeProblemDetails = ApiProblemDetails.AddTraceInformation);
         services.AddExceptionHandler<GlobalExceptionHandler>();
+
+        // GlobalExceptionHandler ya registra la excepción; se evita el log duplicado del middleware del framework.
+        services.Configure<ExceptionHandlerOptions>(options =>
+            options.SuppressDiagnosticsCallback = context => context.ExceptionHandledBy == ExceptionHandledType.ExceptionHandlerService);
         services.AddRouting(options => options.LowercaseUrls = true);
         services.AddOpenApi(options => options.AddOperationTransformer(RemoveNonBindableParameters));
 

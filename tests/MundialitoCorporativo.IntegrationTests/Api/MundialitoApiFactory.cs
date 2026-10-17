@@ -13,6 +13,9 @@ internal sealed class MundialitoApiFactory(string connectionString) : WebApplica
     {
         builder.UseEnvironment("Testing");
         builder.UseSetting("ConnectionStrings:Default", connectionString);
+
+        // Varias instancias de la API corren en el mismo proceso: sin archivo de log compartido.
+        builder.UseSetting("Observability:LogFilePath", "");
     }
 }
 
