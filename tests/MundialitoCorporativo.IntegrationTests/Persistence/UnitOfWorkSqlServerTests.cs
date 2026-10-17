@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
+using MundialitoCorporativo.Application.Abstractions.Messaging;
 using MundialitoCorporativo.Application.Abstractions.Time;
 using MundialitoCorporativo.Domain.Common;
 using MundialitoCorporativo.Domain.Equipos;
@@ -184,10 +185,15 @@ public sealed class UnitOfWorkSqlServerTests(SqlServerDatabaseFixture fixture)
     private void SkipIfUnavailable() => Skip.IfNot(fixture.IsAvailable, fixture.UnavailableReason);
 
     private static UnitOfWork CreateUnitOfWork(MundialitoDbContext context) =>
-        new(context, new FixedDateTimeProvider(UtcNow), NullLogger<UnitOfWork>.Instance);
+        new(context, new FixedDateTimeProvider(UtcNow), new NoHandlersDomainEventDispatcher(), NullLogger<UnitOfWork>.Instance);
 
     private sealed class FixedDateTimeProvider(DateTime utcNow) : IDateTimeProvider
     {
         public DateTime UtcNow { get; } = utcNow;
+    }
+
+    private sealed class NoHandlersDomainEventDispatcher : IDomainEventDispatcher
+    {
+        public Task DispatchAsync(IDomainEvent domainEvent, CancellationToken cancellationToken) => Task.CompletedTask;
     }
 }

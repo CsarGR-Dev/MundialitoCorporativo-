@@ -46,4 +46,7 @@ public sealed class RegistroEventoDominio
     public string? CorrelationId { get; private init; }
 
     public DateTime? FechaProcesado { get; private set; }
+
+    /// <summary>Todos los handlers del evento terminaron sin error.</summary>
+    public void MarkAsProcessed(DateTime fechaProcesado) => FechaProcesado = fechaProcesado;
 }
