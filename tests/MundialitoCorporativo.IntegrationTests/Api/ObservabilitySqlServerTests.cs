@@ -86,7 +86,7 @@ public sealed class ObservabilitySqlServerTests(SqlServerDatabaseFixture fixture
         var correlationId = $"demo-{Guid.NewGuid():N}";
         using var request = new HttpRequestMessage(HttpMethod.Post, "/api/equipos")
         {
-            Content = JsonContent.Create(new { nombre = $"Equipo {Guid.NewGuid():N}"[..20], abreviatura = "OBS" })
+            Content = JsonContent.Create(new { nombre = $"Equipo {Guid.NewGuid():N}"[..20], abreviatura = UniqueTestData.Abreviatura('O') })
         };
         request.Headers.Add(ApiClientExtensions.IdempotencyKeyHeader, Guid.NewGuid().ToString());
         request.Headers.Add(CorrelationHeader, correlationId);

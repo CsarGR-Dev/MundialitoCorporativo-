@@ -179,8 +179,7 @@ public sealed class UnitOfWorkSqlServerTests(SqlServerDatabaseFixture fixture)
         return (torneo, local, visitante);
     }
 
-    private static string AbreviaturaUnica() =>
-        new(Guid.NewGuid().ToString("N").Where(char.IsLetter).Take(4).Select(char.ToUpperInvariant).DefaultIfEmpty('X').ToArray());
+    private static string AbreviaturaUnica() => UniqueTestData.Abreviatura('U');
 
     private void SkipIfUnavailable() => Skip.IfNot(fixture.IsAvailable, fixture.UnavailableReason);
 

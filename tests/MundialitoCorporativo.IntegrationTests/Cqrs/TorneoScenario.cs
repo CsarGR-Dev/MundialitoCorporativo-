@@ -89,10 +89,10 @@ internal sealed class TorneoScenario
         var s = scenario.Sufijo;
 
         scenario.TorneoId = Value(await host.Send(new CreateTorneoCommand($"Mundialito {s}", null, new DateOnly(2026, 1, 1), null)));
-        scenario.Tecnologia = await CreateEquipoAsync(host, $"Tecnología FC {s}", "T" + Abrev(s));
-        scenario.Finanzas = await CreateEquipoAsync(host, $"Finanzas United {s}", "F" + Abrev(s));
-        scenario.Operaciones = await CreateEquipoAsync(host, $"Operaciones City {s}", "O" + Abrev(s));
-        scenario.RecursosHumanos = await CreateEquipoAsync(host, $"Recursos Humanos Athletic {s}", "R" + Abrev(s));
+        scenario.Tecnologia = await CreateEquipoAsync(host, $"Tecnología FC {s}", UniqueTestData.Abreviatura('T'));
+        scenario.Finanzas = await CreateEquipoAsync(host, $"Finanzas United {s}", UniqueTestData.Abreviatura('F'));
+        scenario.Operaciones = await CreateEquipoAsync(host, $"Operaciones City {s}", UniqueTestData.Abreviatura('O'));
+        scenario.RecursosHumanos = await CreateEquipoAsync(host, $"Recursos Humanos Athletic {s}", UniqueTestData.Abreviatura('R'));
 
         foreach (var equipo in new[] { scenario.Tecnologia, scenario.Finanzas, scenario.Operaciones, scenario.RecursosHumanos })
         {
@@ -130,10 +130,6 @@ internal sealed class TorneoScenario
         Value(await host.Send(new SchedulePartidoCommand(scenario.TorneoId, local, visitante, fecha, "Cancha 1")));
 
     private static DetalleGol Gol(Guid jugadorId, Guid equipoId, int minuto) => new(jugadorId, equipoId, minuto);
-
-    // Abreviatura de 4 letras derivada del sufijo (las abreviaturas son únicas y solo admiten 2 a 5 caracteres).
-    private static string Abrev(string sufijo) =>
-        new(sufijo.Select(c => char.IsLetter(c) ? char.ToUpperInvariant(c) : (char)('A' + (c - '0'))).Take(4).ToArray());
 
     private static T Value<T>(Result<T> result)
     {

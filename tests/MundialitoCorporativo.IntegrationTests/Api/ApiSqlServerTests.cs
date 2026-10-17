@@ -421,7 +421,7 @@ public sealed class ApiSqlServerTests(SqlServerDatabaseFixture fixture) : IDispo
 
     private static EquipoBody NewEquipo() => new($"Equipo {Suffix()}", NewAbreviatura(), "Sistemas");
 
-    private static string NewAbreviatura() => Guid.NewGuid().ToString("N")[..5].ToUpperInvariant();
+    private static string NewAbreviatura() => UniqueTestData.Abreviatura('A');
 
     private static string Suffix() => Guid.NewGuid().ToString("N")[..8];
 
