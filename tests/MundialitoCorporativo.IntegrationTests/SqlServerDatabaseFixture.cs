@@ -1,28 +1,26 @@
-using System.Text.RegularExpressions;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using MundialitoCorporativo.Infrastructure.Initialization;
 using MundialitoCorporativo.Infrastructure.Persistence;
 
 namespace MundialitoCorporativo.IntegrationTests;
 
 /// <summary>
-/// Crea una base de datos temporal en SQL Server ejecutando el script de estructura Db/001_DDL_CrearBaseDatos.sql,
-/// de modo que las pruebas validan el mapeo de EF Core contra el esquema real. La base se elimina al terminar.
+/// Crea una base de datos temporal en SQL Server ejecutando el script de estructura Db/001_DDL_CrearBaseDatos.sql
+/// (el mismo que usa la API al iniciar), de modo que las pruebas validan el mapeo de EF Core contra el esquema real.
+/// La base se elimina al terminar.
 /// </summary>
 /// <remarks>
 /// Servidor: variable de entorno MUNDIALITO_TEST_SQLSERVER (por defecto la instancia local con autenticación Windows).
-/// Si no hay servidor o no se encuentra el script, las pruebas se omiten.
+/// Si no hay servidor, las pruebas se omiten.
 /// </remarks>
-public sealed partial class SqlServerDatabaseFixture : IAsyncLifetime
+public sealed class SqlServerDatabaseFixture : IAsyncLifetime
 {
     private const string ServerVariable = "MUNDIALITO_TEST_SQLSERVER";
     private const string DefaultServer = "Server=.;Trusted_Connection=True;TrustServerCertificate=True;Connect Timeout=5";
     private const string ScriptFolder = "Db";
-    private const string ScriptFileName = "001_DDL_CrearBaseDatos.sql";
-    private const string ScriptRelativePath = ScriptFolder + "/" + ScriptFileName;
 
     private readonly string _databaseName = $"Mundialito_Pruebas_{Guid.NewGuid():N}"[..34];
-    private string _serverConnectionString = string.Empty;
 
     public bool IsAvailable { get; private set; }
 
@@ -30,34 +28,18 @@ public sealed partial class SqlServerDatabaseFixture : IAsyncLifetime
 
     public string ConnectionString { get; private set; } = string.Empty;
 
+    /// <summary>Conexión al servidor (base master), para pruebas que crean sus propias bases.</summary>
+    public string ServerConnectionString { get; private set; } = string.Empty;
+
     public async Task InitializeAsync()
     {
-        var scriptPath = FindScript();
-        if (scriptPath is null)
-        {
-            UnavailableReason = $"No se encontró el script {ScriptRelativePath} (búsqueda desde {AppContext.BaseDirectory}).";
-            return;
-        }
-
-        _serverConnectionString = Environment.GetEnvironmentVariable(ServerVariable) ?? DefaultServer;
+        ServerConnectionString = Environment.GetEnvironmentVariable(ServerVariable) ?? DefaultServer;
 
         try
         {
-            await using var connection = new SqlConnection(_serverConnectionString);
-            await connection.OpenAsync();
+            await RunScriptAsync(ServerConnectionString, SqlScripts.Load(SqlScripts.CrearBaseDatos), _databaseName);
 
-            var script = (await File.ReadAllTextAsync(scriptPath))
-                .Replace("N'Mundialito'", $"N'{_databaseName}'", StringComparison.Ordinal)
-                .Replace("CREATE DATABASE Mundialito ", $"CREATE DATABASE {_databaseName} ", StringComparison.Ordinal)
-                .Replace("USE Mundialito;", $"USE {_databaseName};", StringComparison.Ordinal);
-
-            foreach (var batch in GoSeparator().Split(script).Where(batch => !string.IsNullOrWhiteSpace(batch)))
-            {
-                await using var command = new SqlCommand(batch, connection) { CommandTimeout = 120 };
-                await command.ExecuteNonQueryAsync();
-            }
-
-            ConnectionString = new SqlConnectionStringBuilder(_serverConnectionString) { InitialCatalog = _databaseName }.ConnectionString;
+            ConnectionString = new SqlConnectionStringBuilder(ServerConnectionString) { InitialCatalog = _databaseName }.ConnectionString;
             IsAvailable = true;
         }
         catch (SqlException exception)
@@ -68,40 +50,54 @@ public sealed partial class SqlServerDatabaseFixture : IAsyncLifetime
 
     public async Task DisposeAsync()
     {
-        if (!IsAvailable)
+        if (IsAvailable)
         {
-            return;
+            await DropDatabaseAsync(ServerConnectionString, _databaseName);
         }
-
-        SqlConnection.ClearAllPools();
-        await using var connection = new SqlConnection(_serverConnectionString);
-        await connection.OpenAsync();
-        await using var command = new SqlCommand(
-            $"ALTER DATABASE [{_databaseName}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE; DROP DATABASE [{_databaseName}];",
-            connection);
-        await command.ExecuteNonQueryAsync();
     }
 
     public MundialitoDbContext CreateContext() =>
         new(new DbContextOptionsBuilder<MundialitoDbContext>().UseSqlServer(ConnectionString).Options);
 
-    private static string? FindScript()
+    /// <summary>Ejecuta un script de Db/ por lotes (separador GO) sobre la base indicada.</summary>
+    public static async Task RunScriptAsync(string serverConnectionString, string script, string databaseName)
+    {
+        await using var connection = new SqlConnection(serverConnectionString);
+        await connection.OpenAsync();
+
+        foreach (var batch in SqlScripts.SplitBatches(SqlScripts.ForDatabase(script, databaseName)))
+        {
+            await using var command = new SqlCommand(batch, connection) { CommandTimeout = 120 };
+            await command.ExecuteNonQueryAsync();
+        }
+    }
+
+    public static async Task DropDatabaseAsync(string serverConnectionString, string databaseName)
+    {
+        SqlConnection.ClearAllPools();
+        await using var connection = new SqlConnection(serverConnectionString);
+        await connection.OpenAsync();
+        await using var command = new SqlCommand(
+            $"IF DB_ID(N'{databaseName}') IS NOT NULL BEGIN ALTER DATABASE [{databaseName}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE; DROP DATABASE [{databaseName}]; END",
+            connection);
+        await command.ExecuteNonQueryAsync();
+    }
+
+    /// <summary>Busca un script de la carpeta Db/ del repositorio (los de datos no van incluidos en el ensamblado).</summary>
+    public static string FindDbScript(string fileName)
     {
         for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)
         {
             // Separadores del sistema: con rutas largas (prefijo \\?\) Windows no normaliza "/".
-            var candidate = Path.Combine(directory.FullName, ScriptFolder, ScriptFileName);
+            var candidate = Path.Combine(directory.FullName, ScriptFolder, fileName);
             if (File.Exists(candidate))
             {
                 return candidate;
             }
         }
 
-        return null;
+        throw new FileNotFoundException($"No se encontró {ScriptFolder}/{fileName} (búsqueda desde {AppContext.BaseDirectory}).");
     }
-
-    [GeneratedRegex(@"^\s*GO\s*$", RegexOptions.Multiline | RegexOptions.IgnoreCase)]
-    private static partial Regex GoSeparator();
 }
 
 [CollectionDefinition(Name)]

@@ -8,9 +8,11 @@ using MundialitoCorporativo.Application.Abstractions.Queries;
 using MundialitoCorporativo.Application.Abstractions.Time;
 using MundialitoCorporativo.Infrastructure.Data;
 using MundialitoCorporativo.Infrastructure.Idempotency;
+using MundialitoCorporativo.Infrastructure.Initialization;
 using MundialitoCorporativo.Infrastructure.Persistence;
 using MundialitoCorporativo.Infrastructure.Persistence.Repositories;
 using MundialitoCorporativo.Infrastructure.Queries;
+using MundialitoCorporativo.Infrastructure.Seed;
 using MundialitoCorporativo.Infrastructure.Time;
 
 namespace MundialitoCorporativo.Infrastructure;
@@ -54,8 +56,23 @@ public static class DependencyInjection
         services.AddScoped<IIdempotencyStore, SqlIdempotencyStore>();
         services.AddHostedService<IdempotencyCleanupService>();
 
+        // Preparación de la base al iniciar: esquema de Db/ y seed si está vacía (ítem 9).
+        services.Configure<DatabaseOptions>(configuration.GetSection(DatabaseOptions.SectionName));
+        services.AddScoped<DatabaseSeeder>();
+        services.AddScoped(serviceProvider => ActivatorUtilities.CreateInstance<DatabaseInitializer>(serviceProvider, connectionString));
+
         services.AddSingleton<IDateTimeProvider, SystemDateTimeProvider>();
 
         return services;
+    }
+
+    /// <summary>
+    /// Crea la base y su esquema si no existen y carga los datos iniciales si está vacía.
+    /// Se invoca una vez al iniciar la API, antes de atender peticiones.
+    /// </summary>
+    public static async Task InitializeDatabaseAsync(this IServiceProvider services, CancellationToken cancellationToken = default)
+    {
+        await using var scope = services.CreateAsyncScope();
+        await scope.ServiceProvider.GetRequiredService<DatabaseInitializer>().InitializeAsync(cancellationToken);
     }
 }
