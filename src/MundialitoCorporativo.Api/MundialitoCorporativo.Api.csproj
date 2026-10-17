@@ -13,4 +13,9 @@
     <ProjectReference Include="..\MundialitoCorporativo.Infrastructure\MundialitoCorporativo.Infrastructure.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="MundialitoCorporativo.UnitTests" />
+    <InternalsVisibleTo Include="MundialitoCorporativo.IntegrationTests" />
+  </ItemGroup>
+
 </Project>
