@@ -21,6 +21,8 @@ MundialitoCorporativo/
 │   ├── MundialitoCorporativo.UnitTests         Arquitectura, dominio, CQRS, Unit of Work, idempotencia, mapeo HTTP y observabilidad
 │   └── MundialitoCorporativo.IntegrationTests  CQRS, idempotencia, trazabilidad y API por HTTP contra SQL Server
 ├── Db/              Scripts SQL (estructura, vistas, datos iniciales y consultas de referencia)
+├── frontend/
+│   └── mundialito-web/  Frontend Next.js (tabla, goleadores, partidos, resultados, equipos e integrantes)
 ├── Postman/         Colección y entorno de Postman
 ├── Analisis/        Análisis del requerimiento, un documento por ítem
 └── Documentacion/   Bitácora de cambios
@@ -31,6 +33,7 @@ Reglas de dependencia (verificadas con pruebas de arquitectura): Domain no depen
 ## Requisitos
 
 - .NET SDK 10
+- Node.js 20 o superior (frontend)
 - SQL Server 2019 o superior (desarrollo: SQL Server Express con autenticación Windows)
 
 ## Base de datos
@@ -106,6 +109,23 @@ Detalle de verbos, códigos e idempotencia: [Analisis/06_REST_Idempotencia.md](A
 
 **Postman:** importar `Postman/MundialitoCorporativo.postman_collection.json` y el entorno `Postman/Mundialito.Local.postman_environment.json`, y ejecutar la colección en orden. Tiene 64 requests con pruebas y cubre idempotencia, filtros, paginación, errores y trazabilidad. Desde la terminal: `npx newman run Postman/MundialitoCorporativo.postman_collection.json -e Postman/Mundialito.Local.postman_environment.json`. Detalle en [Postman/README.md](Postman/README.md).
 
+## Frontend
+
+```bash
+cd frontend/mundialito-web
+npm install
+npm run dev      # http://localhost:3000 (requiere la API en http://localhost:5000)
+```
+
+Pantallas:
+- tabla de posiciones;
+- goleadores;
+- partidos, con filtros por fecha, equipo y estado;
+- registro de resultado con goleadores;
+- equipos y sus integrantes.
+
+Todas tienen filtros, paginación y orden en la URL. Los errores de la API se muestran con su mensaje y `traceId`. Las páginas consultan la API desde el servidor de Next.js (`API_URL`). Detalle: [frontend/mundialito-web/README.md](frontend/mundialito-web/README.md).
+
 ## Observabilidad
 
 - **Logs estructurados** con Serilog sobre `ILogger<T>`: consola en JSON (texto legible en desarrollo) y archivo diario en JSON en `logs/` dentro de la carpeta desde la que se ejecuta la API. No se registran cuerpos de petición, query string ni cadenas de conexión.
@@ -133,7 +153,7 @@ Los **modelos** están en español con el mismo nombre que las tablas y columnas
 | 8 | Requisitos funcionales | Implementado y expuesto por HTTP: torneos, equipos, jugadores por equipo, partidos, resultados, tabla de posiciones y goleadores |
 | 9 | Seed de datos | Implementado: al iniciar, la API crea la base con los scripts de `Db/` y, si está vacía, carga 4 equipos, 20 jugadores y 6 partidos (3 con resultado) con el dominio y el Unit of Work; script equivalente `Db/003` |
 | 10 | Filtros y paginación | Implementado en todos los GET de colección (paginación en SQL, sortBy con lista blanca) |
-| 11 | Frontend Next.js | Pendiente |
+| 11 | Frontend Next.js | Implementado: equipos e integrantes, partidos, registro de resultado con Idempotency-Key, tabla de posiciones y goleadores, con filtros, paginación y manejo de errores; verificado con un navegador contra la API |
 | 12 | Dockerización | Pendiente |
 | 13 | Diagrama de arquitectura | Pendiente |
 | 14 | Colección de Postman | Implementado: 64 requests en 10 carpetas con pruebas (idempotencia, filtros, paginación, errores, trazabilidad) y entorno local; validada con Newman |

@@ -92,8 +92,52 @@ Las páginas nunca construyen URLs ni llaman `fetch` directamente.
 
 ## Criterios de aceptación
 
-- [ ] Las cinco vistas exigidas más integrantes de equipo funcionan contra la API real.
-- [ ] Filtros y paginación operativos y reflejados en la URL.
-- [ ] El registro de resultado envía `Idempotency-Key` y maneja 400/409.
-- [ ] Ningún componente de presentación llama a la API directamente.
-- [ ] Errores mostrados con mensaje útil, sin pantallas en blanco.
+- [x] Las cinco vistas exigidas más integrantes de equipo funcionan contra la API real.
+- [x] Filtros y paginación operativos y reflejados en la URL.
+- [x] El registro de resultado envía `Idempotency-Key` y maneja 400/409.
+- [x] Ningún componente de presentación llama a la API directamente.
+- [x] Errores mostrados con mensaje útil, sin pantallas en blanco.
+
+## Implementación real
+
+Next.js 16.4 (App Router, TypeScript, Cache Components) en `frontend/mundialito-web/`. Detalle de uso y arquitectura en su `README.md`.
+
+### Ajustes respecto al diseño inicial
+
+| Diseño inicial | Implementado | Motivo |
+|---|---|---|
+| Rutas en inglés (`teams`, `matches`, `standings`, `scorers`) | `/equipos`, `/partidos`, `/tabla-posiciones`, `/goleadores` | Mismo vocabulario que el requerimiento y que las rutas de la API. |
+| `API_URL` en el servidor y `NEXT_PUBLIC_API_URL` en el navegador, con CORS en la API | Solo `API_URL`: el navegador nunca llama a la API | Las páginas son Server Components y el registro de resultado es una Server Action. No hace falta CORS, la URL interna (`http://api:8080` en Docker) no se publica y `server-only` impide importar el cliente HTTP desde el navegador. |
+| Validación con `zod` en el formulario | Validación del navegador (`required`, `min`, `max`) y la de la API como única fuente de reglas | Evita duplicar las reglas del dominio. Los errores 400 de la API se muestran por campo. |
+| `lib/api/players`, `standings`, `scorers` | `torneos.api.ts` (tabla, goleadores, equipos y partidos del torneo), `equipos.api.ts`, `partidos.api.ts` | Siguen la forma de la API: tabla y goleadores son subrecursos del torneo. |
+| `DataTable` y `Filters` genéricos | Tablas y formularios GET por página, más `Pagination`, `SortableHeader`, `TorneoSelector`, `ErrorMessage`, `EmptyState` | Cada vista tiene columnas y filtros distintos; un componente genérico agregaba más configuración que la que ahorraba. |
+| Idempotency-Key fija por formulario | Se crea en el primer envío, se reutiliza mientras ese intento está en curso y se renueva tras un error | La API guarda también las respuestas 4xx: corregir los datos con la misma clave respondería 409. |
+
+### Decisiones propias
+
+- **Errores como valor.** Cada llamada devuelve `ApiResult<T>`, igual que el Result Pattern del backend:
+  - 404 abre `notFound()`;
+  - 400 y 409 muestran el detalle y los errores por campo;
+  - si la API está caída (estado 0), aparece un mensaje claro;
+  - siempre se muestra el `traceId`;
+  - `error.tsx` solo atiende lo inesperado.
+- **Torneo actual.** Se usa el de la URL (`?torneo=`); si no viene, el que está en curso y, en su defecto, el más reciente.
+- **URL sin errores 400.** `pageSize` se limita a 5, 10, 20 o 50, y `sortBy` a la lista de cada vista, así una URL editada a mano no termina en un 400.
+- **Fechas.** Se muestran en la hora de El Salvador; la API las entrega en UTC.
+- **Trazabilidad.** Cada llamada envía `X-Correlation-Id: web-<guid>`, que queda en los logs de la API y en `EventosDominio`.
+
+### Verificación
+
+- `npm run lint` y `npm run build` sin errores. El build se ejecuta sin la API: los datos se piden en cada request.
+- Prueba con un navegador real (Edge sin interfaz, con Playwright) contra la API y la base del seed. Pasaron las 15 verificaciones:
+  - tabla en orden oficial y filtrada conservando la posición;
+  - goleador líder;
+  - partidos y filtro por estado desde el formulario;
+  - orden de equipos desc y paginación;
+  - integrantes y su filtro por posición;
+  - 400 de la API mostrado en el formulario, corrección y registro con una clave nueva (sin 409);
+  - aviso en un partido ya jugado;
+  - equipo inexistente;
+  - ningún error de JavaScript.
+- En la base quedaron un solo resultado y dos claves de idempotencia (400 y 201). El evento de dominio guardó el `CorrelationId` `web-…` del frontend.
+- Con la API detenida, la tabla muestra "La API no está disponible".
