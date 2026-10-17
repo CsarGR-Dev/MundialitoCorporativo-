@@ -58,7 +58,7 @@ internal sealed partial class UnitOfWork(
 
         try
         {
-            await dbContext.SaveChangesAsync(cancellationToken);
+            await dbContext.SaveChangesFromUnitOfWorkAsync(cancellationToken);
 
             if (transaction is not null)
             {
@@ -169,7 +169,7 @@ internal sealed partial class UnitOfWork(
 
         try
         {
-            await dbContext.SaveChangesAsync(CancellationToken.None);
+            await dbContext.SaveChangesFromUnitOfWorkAsync(CancellationToken.None);
         }
         catch (DbUpdateException exception)
         {

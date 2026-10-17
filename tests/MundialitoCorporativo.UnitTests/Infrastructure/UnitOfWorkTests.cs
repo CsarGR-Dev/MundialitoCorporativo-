@@ -225,6 +225,20 @@ public class UnitOfWorkTests
         Assert.Throws<InvalidOperationException>(() => context.SaveChanges());
     }
 
+    [Fact]
+    public async Task DbContextSaveChangesAsync_OutsideUnitOfWork_ShouldThrowAndNotPersist()
+    {
+        await using (var context = CreateContext())
+        {
+            context.Equipos.Add(TestData.NewEquipo("Tecnología FC", "TEC"));
+
+            await Assert.ThrowsAsync<InvalidOperationException>(() => context.SaveChangesAsync());
+        }
+
+        await using var verification = CreateContext();
+        Assert.Equal(0, await verification.Equipos.CountAsync());
+    }
+
     private MundialitoDbContext CreateContext(params IInterceptor[] interceptors)
     {
         var options = new DbContextOptionsBuilder<MundialitoDbContext>()

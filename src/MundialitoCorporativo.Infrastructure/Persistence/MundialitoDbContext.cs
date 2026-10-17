@@ -27,11 +27,22 @@ public sealed class MundialitoDbContext(DbContextOptions<MundialitoDbContext> op
 
     public DbSet<RegistroEventoDominio> EventosDominio => Set<RegistroEventoDominio>();
 
+    private const string UseUnitOfWorkMessage = "Use IUnitOfWork.CommitAsync para confirmar los cambios.";
+
     /// <summary>
-    /// Bloquea el guardado síncrono: los cambios solo se confirman con UnitOfWork.CommitAsync (requerimiento ítem 4).
+    /// Bloquea el guardado directo desde el DbContext, síncrono o asíncrono: los cambios solo se confirman
+    /// con UnitOfWork.CommitAsync (requerimiento ítem 4).
     /// </summary>
     public override int SaveChanges(bool acceptAllChangesOnSuccess) =>
-        throw new InvalidOperationException("Use IUnitOfWork.CommitAsync para confirmar los cambios.");
+        throw new InvalidOperationException(UseUnitOfWorkMessage);
+
+    /// <inheritdoc cref="SaveChanges(bool)"/>
+    public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default) =>
+        throw new InvalidOperationException(UseUnitOfWorkMessage);
+
+    /// <summary>Único punto de guardado; solo lo invoca el Unit of Work.</summary>
+    internal Task<int> SaveChangesFromUnitOfWorkAsync(CancellationToken cancellationToken) =>
+        base.SaveChangesAsync(acceptAllChangesOnSuccess: true, cancellationToken);
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
