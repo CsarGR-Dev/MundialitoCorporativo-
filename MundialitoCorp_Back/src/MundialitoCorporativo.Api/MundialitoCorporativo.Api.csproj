@@ -2,6 +2,8 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.13" />
+    <!-- Interfaz para explorar y probar la API sobre el documento OpenAPI (solo en desarrollo). -->
+    <PackageReference Include="Scalar.AspNetCore" Version="2.18.0" />
     <!-- Observabilidad (ítem 7): logs estructurados con Serilog sobre ILogger. -->
     <PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
     <PackageReference Include="Serilog.Enrichers.Environment" Version="3.0.1" />

@@ -78,7 +78,7 @@ Las pruebas de integración (incluida la API completa con `WebApplicationFactory
 
 ## API REST
 
-Base: `http://localhost:5000/api`. En desarrollo, el documento OpenAPI está en `/openapi/v1.json`.
+Base: `http://localhost:5000/api`. En desarrollo, el documento OpenAPI está en `/openapi/v1.json` y la interfaz de Scalar para explorar y probar los endpoints en `http://localhost:5000/scalar`.
 
 | Recurso | Operaciones |
 |---|---|

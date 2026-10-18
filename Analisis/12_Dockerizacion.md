@@ -97,7 +97,7 @@ Notas:
 | Servicio | URL |
 |---|---|
 | Frontend | http://localhost:3000 |
-| API (Swagger/Scalar) | http://localhost:5000/swagger |
+| API (Scalar, solo en Development) | http://localhost:5000/scalar |
 | Health | http://localhost:5000/health |
 | Jaeger UI | http://localhost:16686 |
 | SQL Server | localhost,1433 |

@@ -23,7 +23,7 @@ Api ──────────────► Application ──► Domain
 | Domain | Ninguno | Ninguno (C# puro) |
 | Application | Domain | FluentValidation, Microsoft.Extensions.Logging.Abstractions, Microsoft.Extensions.DependencyInjection.Abstractions |
 | Infrastructure | Application, Domain | EF Core, EF Core SqlServer, Dapper, Microsoft.Data.SqlClient |
-| Api | Application, Infrastructure | Serilog.AspNetCore, OpenTelemetry, Swashbuckle/Scalar |
+| Api | Application, Infrastructure | Microsoft.AspNetCore.OpenApi, Scalar.AspNetCore, Serilog.AspNetCore, OpenTelemetry |
 
 La referencia de Api a Infrastructure existe únicamente para el registro de dependencias (composition root) en `Program.cs`. Los controladores nunca usan clases de Infrastructure directamente.
 

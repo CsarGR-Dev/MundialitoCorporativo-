@@ -3,6 +3,7 @@ using MundialitoCorporativo.Api.Idempotency;
 using MundialitoCorporativo.Api.Observability;
 using MundialitoCorporativo.Application;
 using MundialitoCorporativo.Infrastructure;
+using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -25,9 +26,13 @@ app.UseRequestObservability();
 app.UseExceptionHandler();
 app.UseStatusCodePages();
 
+// Documento OpenAPI en /openapi/v1.json y Scalar en /scalar para explorar y probar los endpoints.
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+    app.MapScalarApiReference(options => options
+        .WithTitle("Mundialito Corporativo API")
+        .SortTagsAlphabetically());
 }
 
 // El enrutamiento va antes de la idempotencia para que el middleware sepa si el POST llega a un endpoint.
