@@ -9,6 +9,7 @@ const SECCIONES = [
   { href: "/goleadores", label: "Goleadores" },
   { href: "/partidos", label: "Partidos" },
   { href: "/equipos", label: "Equipos" },
+  { href: "/torneos", label: "Torneos" },
 ] as const;
 
 /**

@@ -21,7 +21,7 @@ MundialitoCorporativo/
 │   └── tests/
 │       ├── MundialitoCorporativo.UnitTests         Arquitectura, dominio, CQRS, Unit of Work, idempotencia, mapeo HTTP y observabilidad
 │       └── MundialitoCorporativo.IntegrationTests  CQRS, idempotencia, trazabilidad y API por HTTP contra SQL Server
-├── MundialitoCorp_Front/      Frontend Next.js (tabla, goleadores, partidos, resultados, equipos e integrantes)
+├── MundialitoCorp_Front/      Frontend Next.js (torneos, equipos e integrantes, partidos, resultados, tabla y goleadores)
 ├── Postman/                   Colección y entorno de Postman
 └── Analisis/                  Análisis del requerimiento, un documento por ítem
 ```
@@ -118,11 +118,12 @@ npm run dev      # http://localhost:3000 (requiere la API en http://localhost:50
 Pantallas:
 - tabla de posiciones;
 - goleadores;
-- partidos, con filtros por fecha, equipo y estado;
+- partidos, con filtros por fecha, equipo y estado; programar, reprogramar, cancelar y eliminar;
 - registro de resultado con goleadores;
-- equipos y sus integrantes.
+- equipos: alta, edición y baja, y sus integrantes (registro, edición y baja);
+- torneos: alta, edición y baja, inicio y cierre, inscripción y retiro de equipos.
 
-Todas tienen filtros, paginación y orden en la URL. Los errores de la API se muestran con su mensaje y `traceId`. Las páginas consultan la API desde el servidor de Next.js (`API_URL`). Detalle: [MundialitoCorp_Front/README.md](MundialitoCorp_Front/README.md).
+Los listados tienen filtros, paginación y orden en la URL. Las altas usan `Idempotency-Key`. Los errores de la API se muestran con su mensaje y `traceId`. Las páginas consultan la API desde el servidor de Next.js (`API_URL`). Detalle: [MundialitoCorp_Front/README.md](MundialitoCorp_Front/README.md).
 
 ## Observabilidad
 
@@ -151,7 +152,7 @@ Los **modelos** están en español con el mismo nombre que las tablas y columnas
 | 8 | Requisitos funcionales | Implementado y expuesto por HTTP: torneos, equipos, jugadores por equipo, partidos, resultados, tabla de posiciones y goleadores |
 | 9 | Seed de datos | Implementado: al iniciar, la API crea la base con los scripts SQL de Infrastructure y, si está vacía, carga 4 equipos, 20 jugadores y 6 partidos (3 con resultado) con el dominio y el Unit of Work |
 | 10 | Filtros y paginación | Implementado en todos los GET de colección (paginación en SQL, sortBy con lista blanca) |
-| 11 | Frontend Next.js | Implementado: equipos e integrantes, partidos, registro de resultado con Idempotency-Key, tabla de posiciones y goleadores, con filtros, paginación y manejo de errores; verificado con un navegador contra la API |
+| 11 | Frontend Next.js | Implementado: alta, edición y baja de torneos, equipos, integrantes y partidos; inscripción de equipos; registro de resultado; tabla de posiciones y goleadores; filtros, paginación y manejo de errores; POST con Idempotency-Key. Verificado con un navegador contra la API |
 | 12 | Dockerización | Pendiente |
 | 13 | Diagrama de arquitectura | Pendiente |
 | 14 | Colección de Postman | Implementado: 64 requests en 10 carpetas con pruebas (idempotencia, filtros, paginación, errores, trazabilidad) y entorno local; validada con Newman |

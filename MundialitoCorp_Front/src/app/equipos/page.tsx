@@ -30,7 +30,12 @@ export default async function EquiposPage({ searchParams }: PageProps<"/equipos"
         <div>
           <p className="eyebrow">Participantes</p>
           <h1>Equipos</h1>
-          <p className="page-sub">Equipos inscritos, el departamento que representan y la cantidad de integrantes.</p>
+          <p className="page-sub">Equipos registrados, el departamento que representan y la cantidad de integrantes.</p>
+        </div>
+        <div className="page-actions">
+          <Link href="/equipos/nuevo" className="btn-link">
+            Nuevo equipo
+          </Link>
         </div>
       </div>
 
@@ -99,6 +104,7 @@ async function ListaEquipos({ equipos: consulta, params }: { equipos: ReturnType
                 <td>
                   <div className="row-actions">
                     <Link href={`/equipos/${equipo.id}`}>Ver integrantes</Link>
+                    <Link href={`/equipos/${equipo.id}/editar`}>Editar</Link>
                   </div>
                 </td>
               </tr>

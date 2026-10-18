@@ -20,6 +20,7 @@ interface RequestOptions {
   body?: unknown;
   /** Obligatoria en todo POST (ítem 6). */
   idempotencyKey?: string;
+  contentType?: string;
 }
 
 export function apiGet<T>(path: string, query?: Record<string, QueryValue>): Promise<ApiResult<T>> {
@@ -28,6 +29,21 @@ export function apiGet<T>(path: string, query?: Record<string, QueryValue>): Pro
 
 export function apiPost<T>(path: string, body: unknown, idempotencyKey: string): Promise<ApiResult<T>> {
   return send<T>("POST", path, { body, idempotencyKey });
+}
+
+/** Reemplazo completo; PUT es idempotente por definición y no lleva Idempotency-Key. */
+export function apiPut<T>(path: string, body: unknown): Promise<ApiResult<T>> {
+  return send<T>("PUT", path, { body });
+}
+
+/** Modificación parcial con JSON Merge Patch (RFC 7396): solo los campos enviados. */
+export function apiPatch<T>(path: string, body: unknown): Promise<ApiResult<T>> {
+  return send<T>("PATCH", path, { body, contentType: "application/merge-patch+json" });
+}
+
+/** Responde 204 sin cuerpo; repetirlo sobre un registro ya eliminado también responde 204. */
+export function apiDelete(path: string): Promise<ApiResult<void>> {
+  return send<void>("DELETE", path, {});
 }
 
 async function send<T>(method: string, path: string, options: RequestOptions): Promise<ApiResult<T>> {
@@ -40,7 +56,7 @@ async function send<T>(method: string, path: string, options: RequestOptions): P
 
   const headers: Record<string, string> = { Accept: "application/json", "X-Correlation-Id": correlationId };
   if (options.body !== undefined) {
-    headers["Content-Type"] = "application/json";
+    headers["Content-Type"] = options.contentType ?? "application/json";
   }
   if (options.idempotencyKey) {
     headers["Idempotency-Key"] = options.idempotencyKey;

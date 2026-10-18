@@ -32,10 +32,18 @@ La URL de la API se configura con la variable `API_URL`; por defecto es `http://
 | `/tabla-posiciones` | Tabla del torneo en el orden oficial (puntos, diferencia de gol, goles a favor), con filtro por equipo |
 | `/goleadores` | Ranking de goleadores con filtro por equipo y jugador, orden por columna |
 | `/partidos` | Calendario con filtros por rango de fechas, equipo y estado; orden y paginación |
-| `/partidos/[id]` | Detalle del partido y sus goles |
+| `/partidos/nuevo` | Programar un partido entre dos equipos inscritos en el torneo |
+| `/partidos/[id]` | Detalle del partido y sus goles; cancelar o eliminar |
+| `/partidos/[id]/editar` | Reprogramar: equipos, fecha y sede (solo partidos programados) |
 | `/partidos/[id]/resultado` | Registro del resultado: marcador y un goleador con minuto por cada gol |
 | `/equipos` | Equipos con filtros por nombre y departamento, orden por columna y tamaño de página |
-| `/equipos/[id]` | Datos del equipo e integrantes, con filtro por posición |
+| `/equipos/nuevo` y `/equipos/[id]/editar` | Alta y edición de un equipo |
+| `/equipos/[id]` | Datos del equipo e integrantes, con filtro por posición; eliminar el equipo o un integrante |
+| `/equipos/[id]/jugadores/nuevo` | Registro de un integrante en el equipo |
+| `/equipos/[id]/jugadores/[jugadorId]/editar` | Edición de un integrante (incluye activo/inactivo) |
+| `/torneos` | Torneos con filtros por nombre y estado, orden por columna y paginación |
+| `/torneos/nuevo` y `/torneos/[id]/editar` | Alta y edición de un torneo |
+| `/torneos/[id]` | Datos del torneo, inicio y cierre (Planificado → En curso → Finalizado), inscripción y retiro de equipos, eliminar |
 
 Partidos, tabla y goleadores se muestran por torneo: por defecto el que está en curso, o el que se elija en el selector.
 
@@ -55,14 +63,14 @@ CSS propio en `src/app/globals.css`, sin dependencias de interfaz: un solo juego
 src/
 ├── app/            Páginas (Server Components): leen la URL, llaman a lib/api y componen la vista
 ├── components/     Presentación reutilizable; no conoce la API
-│   └── forms/      ResultadoForm (Client Component)
+│   └── forms/      ActionForm y ConfirmActionButton (Client Components), campos de cada formulario y ResultadoForm
 └── lib/
     ├── api/        Única capa que conoce la API: http-client.ts y un módulo por recurso
     ├── types/      Modelos con los mismos nombres que la API y contratos (PagedResponse, ApiError, ApiResult)
     └── …           Lectura de la URL, formato de fechas, torneo actual, Idempotency-Key
 ```
 
-- **El navegador no llama a la API.** Las páginas son Server Components y el registro de resultado es una Server Action. Por eso no hace falta CORS y la URL de la API no se publica. `lib/api` usa `server-only`, así que importarlo desde un componente del navegador es un error de compilación.
+- **El navegador no llama a la API.** Las páginas son Server Components y toda escritura (crear, editar, eliminar, cambiar estado, registrar resultado) es una Server Action en el `actions.ts` de cada sección. Por eso no hace falta CORS y la URL de la API no se publica. `lib/api` usa `server-only`, así que importarlo desde un componente del navegador es un error de compilación.
 - **Filtros, página y orden en la URL** (`?torneo=…&estado=Jugado&pageNumber=2&sortBy=fechaProgramada&sortDirection=desc`), con los mismos nombres que la API: se pueden compartir, recargar y usar con el botón "atrás".
 - **Solo se recarga la tabla.** Filtrar, ordenar, paginar o cambiar de torneo navega del lado del cliente (`FilterForm`, `TorneoSelector` y los enlaces de `SortableHeader` y `Pagination`), sin recargar la página. Cada lista pide sus datos dentro de un `<Suspense>` con clave en los parámetros de la URL, así el esqueleto de carga aparece solo en el bloque de la tabla y el resto de la página no se mueve. La consulta se lanza antes de `await` y viaja a ese bloque, para que siga en paralelo con lo que necesita el formulario.
 - **Errores como valor:** igual que el Result Pattern del backend, cada llamada devuelve `ApiResult<T>` y la página decide cómo mostrar el error.
@@ -71,8 +79,11 @@ src/
   - Si la API está caída, aparece un mensaje claro.
   - Siempre se muestra el `traceId` para soporte.
   - `error.tsx` queda para lo inesperado, con un botón de reintento.
-- **Idempotency-Key en el registro de resultado:**
-  - La clave se crea en el primer envío y se conserva mientras ese intento está en curso, así un doble envío no registra dos veces.
+- **Verbos HTTP como los define la API:** POST para crear (con Idempotency-Key), PUT para editar (reemplazo completo), PATCH con `application/merge-patch+json` para cambiar el estado de un torneo o cancelar un partido, y DELETE para eliminar.
+- **Formularios:** `ActionForm` envía con `onSubmit`, así los campos no se borran si la API responde con error, y muestra el ProblemDetails (400 por campo, 409 con su motivo). `ConfirmActionButton` pide confirmación antes de eliminar, retirar, cancelar o cambiar de estado, y muestra el error junto al botón. Las reglas (largos, rangos, duplicados, partidos asociados) solo las valida la API.
+- **Fechas con hora:** el partido se captura en hora de El Salvador (`datetime-local`) y se envía en UTC.
+- **Idempotency-Key en cada POST (crear torneo, equipo, integrante o partido, inscribir equipo y registrar resultado):**
+  - La clave se crea en el primer envío y se conserva mientras ese intento está en curso, así un doble envío no crea dos registros.
   - Tras una respuesta de error se usa una clave nueva, porque la API guarda también las respuestas de error.
 - **Trazabilidad:** cada llamada envía un `X-Correlation-Id` con prefijo `web-`. Con él se encuentran en los logs de la API y en `EventosDominio` las operaciones hechas desde el frontend.
 - **Cache Components (Next 16):** los datos se piden en cada request, sin caché. `http-client` llama a `connection()` antes de cada llamada, porque el `X-Correlation-Id` se arma al vuelo y no es prerenderizable; así lo que depende de la API queda bajo su `<Suspense>` y el resto de la página se prerenderiza. El build no necesita la API, lo que permite construir la imagen Docker sin la base. Como ese contenido se transmite después del esqueleto, las páginas con datos necesitan JavaScript en el navegador para mostrarlo.

@@ -5,8 +5,11 @@ import { notFound } from "next/navigation";
 import { EmptyState } from "@/components/EmptyState";
 import { ErrorMessage } from "@/components/ErrorMessage";
 import { EstadoPartidoBadge } from "@/components/EstadoPartidoBadge";
+import { ConfirmActionButton } from "@/components/forms/ConfirmActionButton";
 import { getPartido } from "@/lib/api/partidos.api";
 import { formatFechaHora, formatMarcador } from "@/lib/format";
+
+import { cancelarPartidoAction, eliminarPartidoAction } from "../actions";
 
 export const metadata: Metadata = { title: "Partido" };
 
@@ -42,12 +45,34 @@ export default async function PartidoPage({ params }: PageProps<"/partidos/[id]"
         <span>{p.sede ?? "Sin sede"}</span>
       </p>
 
-      {p.estado === "Programado" && (
-        <p className="actions-row">
-          <Link href={`/partidos/${p.id}/resultado`} className="btn-link">
-            Registrar resultado
-          </Link>
-        </p>
+      {p.estado !== "Jugado" && (
+        <div className="actions-row page-actions">
+          {p.estado === "Programado" && (
+            <>
+              <Link href={`/partidos/${p.id}/resultado`} className="btn-link">
+                Registrar resultado
+              </Link>
+              <Link href={`/partidos/${p.id}/editar`} className="btn-secondary">
+                Reprogramar
+              </Link>
+              <ConfirmActionButton
+                action={cancelarPartidoAction.bind(null, p.id)}
+                label="Cancelar partido"
+                pendingLabel="Cancelando…"
+                confirmMessage="¿Cancelar el partido? Un partido cancelado no admite resultado."
+                errorTitle="No se pudo cancelar el partido."
+              />
+            </>
+          )}
+          <ConfirmActionButton
+            action={eliminarPartidoAction.bind(null, p.id, p.torneoId)}
+            label="Eliminar"
+            pendingLabel="Eliminando…"
+            confirmMessage="¿Eliminar el partido del calendario?"
+            errorTitle="No se pudo eliminar el partido."
+            variant="danger"
+          />
+        </div>
       )}
 
       {p.estado === "Jugado" && (

@@ -41,7 +41,7 @@ const SECCIONES = [
   {
     href: "/partidos",
     titulo: "Partidos",
-    texto: "Calendario con filtros por fecha, equipo y estado; registro de resultados.",
+    texto: "Calendario con filtros por fecha, equipo y estado; programación de partidos y registro de resultados.",
     icono: (
       <Icono>
         <rect x="3" y="5" width="18" height="16" rx="2" />
@@ -52,12 +52,23 @@ const SECCIONES = [
   {
     href: "/equipos",
     titulo: "Equipos",
-    texto: "Equipos participantes, sus integrantes y departamentos.",
+    texto: "Alta y edición de equipos y registro de sus integrantes.",
     icono: (
       <Icono>
         <circle cx="9" cy="7.5" r="3.5" />
         <path d="M15.5 19v-1.5a4 4 0 0 0-4-4h-5a4 4 0 0 0-4 4V19" />
         <path d="M16.5 5.2a3.5 3.5 0 0 1 0 6.6M21 19v-1.2a3.6 3.6 0 0 0-2.7-3.5" />
+      </Icono>
+    ),
+  },
+  {
+    href: "/torneos",
+    titulo: "Torneos",
+    texto: "Creación de torneos, inscripción de equipos e inicio y cierre del torneo.",
+    icono: (
+      <Icono>
+        <path d="M8 4h8v5a4 4 0 0 1-8 0z" />
+        <path d="M8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M8.5 20h7M10 17h4" />
       </Icono>
     ),
   },
@@ -148,6 +159,7 @@ async function ResumenTorneo({ searchParams }: { searchParams: PageProps<"/">["s
           {torneos.length > 1 && (
             <PuntosCarrusel torneos={torneos} actual={torneo} indice={indice} />
           )}
+          <Link href={`/torneos/${torneo.id}`}>Ver torneo →</Link>
         </div>
       </div>
 

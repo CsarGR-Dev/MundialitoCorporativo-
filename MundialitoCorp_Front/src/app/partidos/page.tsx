@@ -55,7 +55,14 @@ export default async function PartidosPage({ searchParams }: PageProps<"/partido
           <h1>Partidos</h1>
           <p className="page-sub">Calendario del torneo con el resultado de los partidos jugados.</p>
         </div>
-        <TorneoSelector torneos={torneos} actual={actual} action={PATH} />
+        <div className="page-actions">
+          <TorneoSelector torneos={torneos} actual={actual} action={PATH} />
+          {actual.estado !== "Finalizado" && (
+            <Link href={`${PATH}/nuevo?torneo=${actual.id}`} className="btn-link">
+              Programar partido
+            </Link>
+          )}
+        </div>
       </div>
 
       <FilterForm action={PATH} limpiar={`${PATH}?torneo=${actual.id}`}>
@@ -148,9 +155,12 @@ async function CalendarioPartidos({
                   <div className="row-actions">
                     <Link href={`/partidos/${partido.id}`}>Ver</Link>
                     {partido.estado === "Programado" && (
-                      <Link href={`/partidos/${partido.id}/resultado`} title="Registrar resultado">
+                      <>
+                        <Link href={`/partidos/${partido.id}/resultado`} title="Registrar resultado">
                         Resultado
                       </Link>
+                        <Link href={`/partidos/${partido.id}/editar`}>Editar</Link>
+                      </>
                     )}
                   </div>
                 </td>

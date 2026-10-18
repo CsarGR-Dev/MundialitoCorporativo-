@@ -147,3 +147,32 @@ Next.js 16.4 (App Router, TypeScript, Cache Components) en `MundialitoCorp_Front
   - ningún error de JavaScript.
 - En la base quedaron un solo resultado y dos claves de idempotencia (400 y 201). El evento de dominio guardó el `CorrelationId` `web-…` del frontend.
 - Con la API detenida, la tabla muestra "La API no está disponible".
+
+### Alta, edición y baja desde el frontend
+
+El requerimiento general pide que el sistema permita **ingresar** equipos participantes, integrantes de equipos, calendario de partidos, resultados y goleadores. La primera versión del frontend solo registraba resultados; ahora cubre todas las escrituras que expone la API:
+
+| Recurso | Operaciones en pantalla | Verbo |
+|---|---|---|
+| Torneos | Crear, editar, iniciar y finalizar, eliminar; inscribir y retirar equipos | POST, PUT, PATCH (`estado`), DELETE |
+| Equipos | Crear, editar, eliminar | POST, PUT, DELETE |
+| Integrantes | Registrar por equipo, editar (incluye activo/inactivo), eliminar | POST, PUT, DELETE |
+| Partidos | Programar, reprogramar, cancelar, eliminar | POST, PUT, PATCH (`estado: Cancelado`), DELETE |
+| Resultado | Registrar marcador y goleadores | POST |
+
+- **Server Actions por sección** (`app/torneos/actions.ts`, `app/equipos/actions.ts`, `app/partidos/actions.ts`): leen el formulario, llaman a `lib/api` y redirigen a la página que muestra el cambio. Un error de la API vuelve al formulario como valor.
+- **`ActionForm`** generaliza lo que ya hacía el formulario de resultado: envío con `onSubmit` para no perder los datos, Idempotency-Key por intento en los POST y ProblemDetails en pantalla.
+- **`ConfirmActionButton`** para operaciones sin datos (eliminar, retirar, cancelar, cambiar de estado): pide confirmación y muestra el 409 junto al botón (por ejemplo, "El equipo tiene partidos asociados y no puede eliminarse").
+- **Las reglas solo están en la API.** El frontend oculta acciones que no aplican (editar un torneo finalizado, reprogramar un partido jugado), pero quien decide es el dominio y su respuesta se muestra tal cual.
+- **Fecha del partido:** `datetime-local` en hora de El Salvador (UTC-6, sin horario de verano), enviada a la API en UTC.
+
+**Verificación:** prueba E2E con Edge sin interfaz y Playwright contra la API sobre una base temporal creada por el seed. Pasaron las 31 verificaciones:
+- torneo: 400 por fechas y campos conservados, alta, 409 por nombre duplicado, edición, inicio, finalización y 409 al eliminar con partidos jugados;
+- equipos: tres altas, 409 por nombre duplicado, edición, 409 al eliminar con partidos y baja de un equipo sin partidos;
+- integrantes: alta, 409 por camiseta repetida, edición (número e inactivo) y baja;
+- inscripción de dos equipos y 409 al retirar un equipo con partidos;
+- partidos: error por fecha fuera del torneo, alta con hora local correcta, reprogramación, resultado 1-0, cancelación y baja;
+- tabla de posiciones con el ganador en 3 puntos;
+- ningún error de JavaScript.
+
+En la base quedaron las claves de idempotencia de cada POST, también las respuestas 400 y 409, y los eventos de dominio con el `CorrelationId` `web-…`.

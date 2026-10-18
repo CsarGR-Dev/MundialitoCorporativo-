@@ -6,11 +6,14 @@ import { Suspense } from "react";
 import { EmptyState } from "@/components/EmptyState";
 import { ErrorMessage } from "@/components/ErrorMessage";
 import { FilterForm } from "@/components/FilterForm";
+import { ConfirmActionButton } from "@/components/forms/ConfirmActionButton";
 import { Pagination } from "@/components/Pagination";
 import { SortableHeader } from "@/components/SortableHeader";
 import { TableSkeleton } from "@/components/TableSkeleton";
 import { getEquipo, getIntegrantes, getPosicionesJuego } from "@/lib/api/equipos.api";
 import { pageQuery, param, searchKey, type SearchParams } from "@/lib/search-params";
+
+import { eliminarEquipoAction, eliminarIntegranteAction } from "../actions";
 
 export const metadata: Metadata = { title: "Integrantes del equipo" };
 
@@ -51,9 +54,27 @@ export default async function EquipoPage({ params, searchParams }: PageProps<"/e
             Departamento: {e.departamento ?? "—"} · {e.cantidadJugadores} integrantes
           </p>
         </div>
+        <div className="page-actions">
+          <Link href={`${path}/editar`} className="btn-secondary">
+            Editar
+          </Link>
+          <ConfirmActionButton
+            action={eliminarEquipoAction.bind(null, e.id)}
+            label="Eliminar"
+            pendingLabel="Eliminando…"
+            confirmMessage={`¿Eliminar el equipo "${e.nombre}"?`}
+            errorTitle="No se pudo eliminar el equipo."
+            variant="danger"
+          />
+        </div>
       </div>
 
-      <h2>Integrantes</h2>
+      <div className="section-head">
+        <h2>Integrantes</h2>
+        <Link href={`${path}/jugadores/nuevo`} className="btn-link">
+          Registrar integrante
+        </Link>
+      </div>
       <FilterForm action={path} limpiar={path}>
         <label>
           Posición
@@ -70,7 +91,7 @@ export default async function EquipoPage({ params, searchParams }: PageProps<"/e
       </FilterForm>
 
       <Suspense key={searchKey(query)} fallback={<TableSkeleton />}>
-        <ListaIntegrantes integrantes={integrantes} params={query} path={path} />
+        <ListaIntegrantes integrantes={integrantes} params={query} path={path} equipoId={e.id} />
       </Suspense>
     </>
   );
@@ -81,10 +102,12 @@ async function ListaIntegrantes({
   integrantes: consulta,
   params,
   path,
+  equipoId,
 }: {
   integrantes: ReturnType<typeof getIntegrantes>;
   params: SearchParams;
   path: string;
+  equipoId: string;
 }) {
   const integrantes = await consulta;
 
@@ -108,6 +131,7 @@ async function ListaIntegrantes({
               <SortableHeader label="Posición" field="posicionJuego" pathname={path} searchParams={params} defaultField="apellidos" />
               <th className="num">Goles</th>
               <th>Estado</th>
+              <th />
             </tr>
           </thead>
           <tbody>
@@ -119,6 +143,19 @@ async function ListaIntegrantes({
                 <td>{jugador.posicionJuego}</td>
                 <td className="num">{jugador.goles}</td>
                 <td>{jugador.activo ? "Activo" : "Inactivo"}</td>
+                <td>
+                  <div className="row-actions">
+                    <Link href={`${path}/jugadores/${jugador.id}/editar`}>Editar</Link>
+                    <ConfirmActionButton
+                      action={eliminarIntegranteAction.bind(null, equipoId, jugador.id)}
+                      label="Eliminar"
+                      pendingLabel="Eliminando…"
+                      confirmMessage={`¿Eliminar a ${jugador.nombres} ${jugador.apellidos} del equipo?`}
+                      errorTitle="No se pudo eliminar el integrante."
+                      variant="danger"
+                    />
+                  </div>
+                </td>
               </tr>
             ))}
           </tbody>

@@ -6,6 +6,7 @@ export type EstadoTorneo = "Planificado" | "EnCurso" | "Finalizado";
 export type EstadoPartido = "Programado" | "Jugado" | "Cancelado";
 
 export const ESTADOS_PARTIDO: EstadoPartido[] = ["Programado", "Jugado", "Cancelado"];
+export const ESTADOS_TORNEO: EstadoTorneo[] = ["Planificado", "EnCurso", "Finalizado"];
 
 export interface Torneo {
   id: string;
@@ -117,4 +118,40 @@ export interface RegistrarResultado {
   golesLocal: number;
   golesVisitante: number;
   goles: { jugadorId: string; equipoId: string; minuto: number }[];
+}
+
+/** Cuerpo de POST y PUT de /api/torneos. Fechas sin hora ("2026-10-01"). */
+export interface TorneoInput {
+  nombre: string;
+  descripcion: string | null;
+  fechaInicio: string;
+  fechaFin: string | null;
+}
+
+/** Cuerpo de POST y PUT de /api/equipos. */
+export interface EquipoInput {
+  nombre: string;
+  abreviatura: string;
+  departamento: string | null;
+}
+
+/** Cuerpo de POST /api/equipos/{id}/jugadores; PUT /api/jugadores/{id} agrega activo. */
+export interface JugadorInput {
+  posicionJuegoId: number;
+  nombres: string;
+  apellidos: string;
+  numeroCamiseta: number;
+}
+
+export interface JugadorUpdate extends JugadorInput {
+  activo: boolean;
+}
+
+/** Cuerpo de POST /api/partidos; PUT no cambia el torneo. Fecha en UTC (ISO 8601). */
+export interface PartidoInput {
+  torneoId: string;
+  equipoLocalId: string;
+  equipoVisitanteId: string;
+  fechaProgramada: string;
+  sede: string | null;
 }
