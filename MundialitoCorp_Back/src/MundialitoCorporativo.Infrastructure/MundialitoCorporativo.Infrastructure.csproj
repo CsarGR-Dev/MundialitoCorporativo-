@@ -23,8 +23,8 @@
 
   <!-- Scripts de estructura: la API crea la base con ellos al iniciar (Docker, ítem 9). Única definición del esquema. -->
   <ItemGroup>
-    <EmbeddedResource Include="..\..\Db\001_DDL_CrearBaseDatos.sql" LogicalName="Db.001_DDL_CrearBaseDatos.sql" Link="Initialization\Scripts\001_DDL_CrearBaseDatos.sql" />
-    <EmbeddedResource Include="..\..\Db\002_VIEW_TablaPosicionesGoleadores.sql" LogicalName="Db.002_VIEW_TablaPosicionesGoleadores.sql" Link="Initialization\Scripts\002_VIEW_TablaPosicionesGoleadores.sql" />
+    <EmbeddedResource Include="..\..\..\Db\001_DDL_CrearBaseDatos.sql" LogicalName="Db.001_DDL_CrearBaseDatos.sql" Link="Initialization\Scripts\001_DDL_CrearBaseDatos.sql" />
+    <EmbeddedResource Include="..\..\..\Db\002_VIEW_TablaPosicionesGoleadores.sql" LogicalName="Db.002_VIEW_TablaPosicionesGoleadores.sql" Link="Initialization\Scripts\002_VIEW_TablaPosicionesGoleadores.sql" />
   </ItemGroup>
 
   <!-- Las implementaciones son internas; solo las pruebas pueden instanciarlas directamente. -->

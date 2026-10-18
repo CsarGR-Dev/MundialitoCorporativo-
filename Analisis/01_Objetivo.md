@@ -29,7 +29,7 @@ El objetivo no es solo que el sistema funcione, sino que cada patrón sea **visi
 - `README.md` con: descripción, arquitectura, cómo ejecutar (`docker-compose up`), cómo ejecutar pruebas, endpoints, decisiones de diseño y supuestos.
 - Diagrama de arquitectura en `docs/arquitectura/`.
 - Colección y environment de Postman en `postman/`.
-- Proyectos de prueba en `tests/`.
+- Proyectos de prueba en `MundialitoCorp_Back/tests/`.
 
 ## Criterios de aceptación
 

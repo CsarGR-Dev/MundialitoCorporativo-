@@ -12,20 +12,20 @@ API en **.NET 10** con **Clean Architecture**, **CQRS** (EF Core para escritura,
 
 ```
 MundialitoCorporativo/
-├── src/
-│   ├── MundialitoCorporativo.Domain          Modelos, reglas de negocio, Result Pattern, eventos de dominio
-│   ├── MundialitoCorporativo.Application     CQRS: despachador, Commands, Queries, validaciones y contratos
-│   ├── MundialitoCorporativo.Infrastructure  EF Core, repositorios, Unit of Work y consultas Dapper
-│   └── MundialitoCorporativo.Api             Controladores REST, idempotencia, observabilidad, errores HTTP y composition root
-├── tests/
-│   ├── MundialitoCorporativo.UnitTests         Arquitectura, dominio, CQRS, Unit of Work, idempotencia, mapeo HTTP y observabilidad
-│   └── MundialitoCorporativo.IntegrationTests  CQRS, idempotencia, trazabilidad y API por HTTP contra SQL Server
-├── Db/              Scripts SQL (estructura, vistas, datos iniciales y consultas de referencia)
-├── frontend/
-│   └── mundialito-web/  Frontend Next.js (tabla, goleadores, partidos, resultados, equipos e integrantes)
-├── Postman/         Colección y entorno de Postman
-├── Analisis/        Análisis del requerimiento, un documento por ítem
-└── Documentacion/   Bitácora de cambios
+├── MundialitoCorp_Back/       Backend .NET 10 (solución MundialitoCorporativo.slnx y Directory.Build.props)
+│   ├── src/
+│   │   ├── MundialitoCorporativo.Domain          Modelos, reglas de negocio, Result Pattern, eventos de dominio
+│   │   ├── MundialitoCorporativo.Application     CQRS: despachador, Commands, Queries, validaciones y contratos
+│   │   ├── MundialitoCorporativo.Infrastructure  EF Core, repositorios, Unit of Work y consultas Dapper
+│   │   └── MundialitoCorporativo.Api             Controladores REST, idempotencia, observabilidad, errores HTTP y composition root
+│   └── tests/
+│       ├── MundialitoCorporativo.UnitTests         Arquitectura, dominio, CQRS, Unit of Work, idempotencia, mapeo HTTP y observabilidad
+│       └── MundialitoCorporativo.IntegrationTests  CQRS, idempotencia, trazabilidad y API por HTTP contra SQL Server
+├── MundialitoCorp_Front/      Frontend Next.js (tabla, goleadores, partidos, resultados, equipos e integrantes)
+├── Db/                        Scripts SQL (estructura, vistas, datos iniciales y consultas de referencia)
+├── Postman/                   Colección y entorno de Postman
+├── Analisis/                  Análisis del requerimiento, un documento por ítem
+└── Documentacion/             Bitácora de cambios
 ```
 
 Reglas de dependencia (verificadas con pruebas de arquitectura): Domain no depende de ninguna capa; Application depende solo de Domain; Infrastructure implementa los contratos de Application; Api solo orquesta.
@@ -57,7 +57,7 @@ Para trabajar desde SSMS sin la API, ejecutar en orden:
 
 La sección `Database` de `appsettings.json` controla este comportamiento (`ApplySchemaOnStartup`, `SeedOnStartup`, reintentos de conexión).
 
-La cadena de conexión de desarrollo está en `src/MundialitoCorporativo.Api/appsettings.Development.json`:
+La cadena de conexión de desarrollo está en `MundialitoCorp_Back/src/MundialitoCorporativo.Api/appsettings.Development.json`:
 
 ```
 Server=.\SQLEXPRESS;Database=Mundialito;Trusted_Connection=True;TrustServerCertificate=True
@@ -68,6 +68,7 @@ Diseño y diccionario de datos: [Analisis/16_Analisis_Base_Datos.md](Analisis/16
 ## Compilar, probar y ejecutar
 
 ```bash
+cd MundialitoCorp_Back
 dotnet build
 dotnet test
 dotnet run --project src/MundialitoCorporativo.Api      # http://localhost:5000
@@ -112,7 +113,7 @@ Detalle de verbos, códigos e idempotencia: [Analisis/06_REST_Idempotencia.md](A
 ## Frontend
 
 ```bash
-cd frontend/mundialito-web
+cd MundialitoCorp_Front
 npm install
 npm run dev      # http://localhost:3000 (requiere la API en http://localhost:5000)
 ```
@@ -124,7 +125,7 @@ Pantallas:
 - registro de resultado con goleadores;
 - equipos y sus integrantes.
 
-Todas tienen filtros, paginación y orden en la URL. Los errores de la API se muestran con su mensaje y `traceId`. Las páginas consultan la API desde el servidor de Next.js (`API_URL`). Detalle: [frontend/mundialito-web/README.md](frontend/mundialito-web/README.md).
+Todas tienen filtros, paginación y orden en la URL. Los errores de la API se muestran con su mensaje y `traceId`. Las páginas consultan la API desde el servidor de Next.js (`API_URL`). Detalle: [MundialitoCorp_Front/README.md](MundialitoCorp_Front/README.md).
 
 ## Observabilidad
 

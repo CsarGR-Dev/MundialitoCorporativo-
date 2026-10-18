@@ -63,21 +63,23 @@ Se permite establecer criterios propios de funcionamiento cuando la descripción
 
 ```
 MundialitoCorporativo/
-├── src/
-│   ├── MundialitoCorporativo.Domain/
-│   ├── MundialitoCorporativo.Application/
-│   ├── MundialitoCorporativo.Infrastructure/
-│   └── MundialitoCorporativo.Api/
-├── tests/
-│   ├── MundialitoCorporativo.UnitTests/
-│   └── MundialitoCorporativo.IntegrationTests/
-├── frontend/
-│   └── mundialito-web/
-├── docs/
-│   └── arquitectura/
-├── postman/
+├── MundialitoCorp_Back/
+│   ├── src/
+│   │   ├── MundialitoCorporativo.Domain/
+│   │   ├── MundialitoCorporativo.Application/
+│   │   ├── MundialitoCorporativo.Infrastructure/
+│   │   └── MundialitoCorporativo.Api/
+│   ├── tests/
+│   │   ├── MundialitoCorporativo.UnitTests/
+│   │   └── MundialitoCorporativo.IntegrationTests/
+│   ├── Directory.Build.props
+│   └── MundialitoCorporativo.slnx
+├── MundialitoCorp_Front/
+├── Db/
+├── Postman/
+├── Analisis/
+├── Documentacion/
 ├── docker-compose.yml
-├── MundialitoCorporativo.slnx
 └── README.md
 ```
 

@@ -22,7 +22,7 @@ Valorable: tests de integración.
 ## Proyectos
 
 ```
-tests/
+MundialitoCorp_Back/tests/
 ├── MundialitoCorporativo.UnitTests/
 │   ├── Domain/
 │   │   ├── Standings/TablaPosicionesCalculatorTests.cs

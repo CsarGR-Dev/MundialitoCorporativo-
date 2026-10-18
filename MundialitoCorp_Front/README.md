@@ -5,12 +5,12 @@ Next.js 16 (App Router) con TypeScript. Consume la API REST del Mundialito (íte
 ## Requisitos
 
 - Node.js 20 o superior.
-- La API en ejecución: `dotnet run --project src/MundialitoCorporativo.Api` (http://localhost:5000).
+- La API en ejecución: `dotnet run --project MundialitoCorp_Back/src/MundialitoCorporativo.Api` (http://localhost:5000).
 
 ## Ejecutar
 
 ```bash
-cd frontend/mundialito-web
+cd MundialitoCorp_Front
 npm install
 npm run dev            # http://localhost:3000
 ```

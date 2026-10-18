@@ -29,7 +29,7 @@ public record Error(ErrorType Type, string Message, string? Code = null)
 }
 ```
 
-`Result` expone además los atajos `ErrorMessage` y `ErrorCode` (nulos cuando el resultado es exitoso). Implementación real: `src/MundialitoCorporativo.Domain/Common/`.
+`Result` expone además los atajos `ErrorMessage` y `ErrorCode` (nulos cuando el resultado es exitoso). Implementación real: `MundialitoCorp_Back/src/MundialitoCorporativo.Domain/Common/`.
 
 ### Result y Result&lt;T&gt;
 

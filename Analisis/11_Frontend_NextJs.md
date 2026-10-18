@@ -18,7 +18,7 @@ Del requerimiento general también: visualización de integrantes de equipos.
 ## Estructura
 
 ```
-frontend/mundialito-web/
+MundialitoCorp_Front/
 ├── src/
 │   ├── app/
 │   │   ├── layout.tsx              (menú de navegación)
@@ -100,7 +100,7 @@ Las páginas nunca construyen URLs ni llaman `fetch` directamente.
 
 ## Implementación real
 
-Next.js 16.4 (App Router, TypeScript, Cache Components) en `frontend/mundialito-web/`. Detalle de uso y arquitectura en su `README.md`.
+Next.js 16.4 (App Router, TypeScript, Cache Components) en `MundialitoCorp_Front`. Detalle de uso y arquitectura en su `README.md`.
 
 ### Ajustes respecto al diseño inicial
 

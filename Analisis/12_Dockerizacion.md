@@ -9,7 +9,7 @@ Debe incluir:
 
 Debe levantarse con: `docker-compose up`.
 
-## Dockerfile API (`src/MundialitoCorporativo.Api/Dockerfile`)
+## Dockerfile API (`MundialitoCorp_Back/src/MundialitoCorporativo.Api/Dockerfile`)
 
 Multi-stage:
 
@@ -23,7 +23,7 @@ Multi-stage:
 
 Contexto de build: raíz del repositorio (para incluir todos los proyectos referenciados).
 
-## Dockerfile Frontend (`frontend/mundialito-web/Dockerfile`)
+## Dockerfile Frontend (`MundialitoCorp_Front/Dockerfile`)
 
 Multi-stage:
 
@@ -54,7 +54,7 @@ services:
   api:
     build:
       context: .
-      dockerfile: src/MundialitoCorporativo.Api/Dockerfile
+      dockerfile: MundialitoCorp_Back/src/MundialitoCorporativo.Api/Dockerfile
     environment:
       ASPNETCORE_ENVIRONMENT: Docker
       ConnectionStrings__Default: "Server=db;Database=Mundialito;User Id=sa;Password=${DB_PASSWORD:-Mundialito#2026};TrustServerCertificate=True"
@@ -70,7 +70,7 @@ services:
 
   frontend:
     build:
-      context: frontend/mundialito-web
+      context: MundialitoCorp_Front
       args:
         NEXT_PUBLIC_API_URL: "http://localhost:5000"
     environment:

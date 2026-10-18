@@ -7,7 +7,7 @@
 
 ## Uso
 
-1. Iniciar la API: `dotnet run --project src/MundialitoCorporativo.Api`. Con la base vacía o inexistente, la crea y carga los datos iniciales.
+1. Iniciar la API: `dotnet run --project MundialitoCorp_Back/src/MundialitoCorporativo.Api`. Con la base vacía o inexistente, la crea y carga los datos iniciales.
 2. En Postman: **Import** → los dos archivos → seleccionar el entorno **Mundialito Local**.
 3. Ejecutar la colección completa **en orden** (*Run collection*). Cada request guarda en variables los ids que usan los siguientes.
 

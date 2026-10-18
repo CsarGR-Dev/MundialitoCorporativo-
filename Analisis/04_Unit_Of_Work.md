@@ -105,6 +105,6 @@ Caso de referencia: **registrar resultado de partido**.
 
 ## Implementación real
 
-- `src/MundialitoCorporativo.Application/Abstractions/Persistence/IUnitOfWork.cs`
-- `src/MundialitoCorporativo.Infrastructure/Persistence/UnitOfWork.cs`
-- Pruebas: `tests/MundialitoCorporativo.UnitTests/Infrastructure/UnitOfWorkTests.cs` (9) y `tests/MundialitoCorporativo.IntegrationTests/Persistence/UnitOfWorkSqlServerTests.cs` (4, contra SQL Server con el esquema de `Db/001`).
+- `MundialitoCorp_Back/src/MundialitoCorporativo.Application/Abstractions/Persistence/IUnitOfWork.cs`
+- `MundialitoCorp_Back/src/MundialitoCorporativo.Infrastructure/Persistence/UnitOfWork.cs`
+- Pruebas: `MundialitoCorp_Back/tests/MundialitoCorporativo.UnitTests/Infrastructure/UnitOfWorkTests.cs` (9) y `MundialitoCorp_Back/tests/MundialitoCorporativo.IntegrationTests/Persistence/UnitOfWorkSqlServerTests.cs` (4, contra SQL Server con el esquema de `Db/001`).
