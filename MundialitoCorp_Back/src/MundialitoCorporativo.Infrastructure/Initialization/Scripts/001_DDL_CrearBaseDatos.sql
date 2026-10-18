@@ -37,6 +37,15 @@ GO
 USE Mundialito;
 GO
 
+/* SQL Server Express crea las bases con AUTO_CLOSE activado: la base se cierra cuando queda sin
+   conexiones y la siguiente consulta espera a que vuelva a arrancar (más lento con poca memoria).
+   La API usa la base de forma continua, así que se desactiva. */
+IF DATABASEPROPERTYEX(DB_NAME(), 'IsAutoClose') = 1
+BEGIN
+    ALTER DATABASE CURRENT SET AUTO_CLOSE OFF;
+END
+GO
+
 /* -------------------------------------------------------------------------------------
    2. PosicionesJuego (Catálogo de posiciones de juego)
    ------------------------------------------------------------------------------------- */
