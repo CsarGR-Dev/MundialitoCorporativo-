@@ -14,15 +14,19 @@ export function Pagination({ pathname, searchParams, page }: { pathname: string;
   return (
     <nav className="pagination" aria-label="Paginación">
       {hasPrevious ? (
-        <Link href={hrefWith(pathname, searchParams, { pageNumber: pageNumber - 1 })}>← Anterior</Link>
+        <Link href={hrefWith(pathname, searchParams, { pageNumber: pageNumber - 1 })} scroll={false}>
+          ← Anterior
+        </Link>
       ) : (
         <span className="disabled">← Anterior</span>
       )}
-      <span>
+      <span className="page-info">
         Página {totalPages === 0 ? 0 : pageNumber} de {totalPages} · {totalRecords} {totalRecords === 1 ? "registro" : "registros"}
       </span>
       {hasNext ? (
-        <Link href={hrefWith(pathname, searchParams, { pageNumber: pageNumber + 1 })}>Siguiente →</Link>
+        <Link href={hrefWith(pathname, searchParams, { pageNumber: pageNumber + 1 })} scroll={false}>
+          Siguiente →
+        </Link>
       ) : (
         <span className="disabled">Siguiente →</span>
       )}

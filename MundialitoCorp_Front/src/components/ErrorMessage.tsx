@@ -17,19 +17,41 @@ export function ErrorMessage({ error, title }: { error: ApiError; title?: string
 
   return (
     <div className="alert alert-error" role="alert">
-      <strong>{resumen}</strong>
-      {error.detail && <p>{error.detail}</p>}
-      {fieldErrors.length > 0 && (
-        <ul>
-          {fieldErrors.flatMap(([field, messages]) => messages.map((message) => <li key={`${field}-${message}`}>{message}</li>))}
-        </ul>
-      )}
-      {(error.traceId || error.errorCode) && (
-        <p className="muted small">
-          {error.errorCode && <>Código: {error.errorCode}. </>}
-          {error.traceId && <>Referencia para soporte (traceId): <code>{error.traceId}</code></>}
-        </p>
-      )}
+      <AlertIcon />
+      <div className="alert-body">
+        <strong>{resumen}</strong>
+        {error.detail && <p>{error.detail}</p>}
+        {fieldErrors.length > 0 && (
+          <ul>
+            {fieldErrors.flatMap(([field, messages]) => messages.map((message) => <li key={`${field}-${message}`}>{message}</li>))}
+          </ul>
+        )}
+        {(error.traceId || error.errorCode) && (
+          <p className="muted small">
+            {error.errorCode && <>Código: {error.errorCode}. </>}
+            {error.traceId && <>Referencia para soporte (traceId): <code>{error.traceId}</code></>}
+          </p>
+        )}
+      </div>
     </div>
+  );
+}
+
+export function AlertIcon() {
+  return (
+    <svg
+      className="alert-icon"
+      viewBox="0 0 24 24"
+      width="20"
+      height="20"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.7"
+      strokeLinecap="round"
+      aria-hidden="true"
+    >
+      <path d="M12 3.8 2.6 20h18.8z" />
+      <path d="M12 9.5v4.2M12 16.8h.01" />
+    </svg>
   );
 }

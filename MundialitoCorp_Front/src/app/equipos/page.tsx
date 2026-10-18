@@ -1,12 +1,15 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Suspense } from "react";
 
 import { EmptyState } from "@/components/EmptyState";
 import { ErrorMessage } from "@/components/ErrorMessage";
+import { FilterForm } from "@/components/FilterForm";
 import { Pagination } from "@/components/Pagination";
 import { SortableHeader } from "@/components/SortableHeader";
+import { TableSkeleton } from "@/components/TableSkeleton";
 import { EQUIPOS_SORT_FIELDS, getEquipos } from "@/lib/api/equipos.api";
-import { PAGE_SIZES, pageQuery, param } from "@/lib/search-params";
+import { PAGE_SIZES, pageQuery, param, searchKey, type SearchParams } from "@/lib/search-params";
 
 export const metadata: Metadata = { title: "Equipos" };
 
@@ -18,13 +21,20 @@ export default async function EquiposPage({ searchParams }: PageProps<"/equipos"
   const query = pageQuery(params, EQUIPOS_SORT_FIELDS);
   const nombre = param(params, "nombre");
   const departamento = param(params, "departamento");
-  const equipos = await getEquipos({ ...query, nombre, departamento });
+  // Sin await: la consulta viaja al bloque de resultados y se transmite cuando llega, sin frenar la página.
+  const equipos = getEquipos({ ...query, nombre, departamento });
 
   return (
     <>
-      <h1>Equipos</h1>
+      <div className="page-head">
+        <div>
+          <p className="eyebrow">Participantes</p>
+          <h1>Equipos</h1>
+          <p className="page-sub">Equipos inscritos, el departamento que representan y la cantidad de integrantes.</p>
+        </div>
+      </div>
 
-      <form method="get" action={PATH} className="filters">
+      <FilterForm action={PATH} limpiar={PATH}>
         <label>
           Nombre
           <input name="nombre" defaultValue={nombre} placeholder="Contiene…" />
@@ -45,43 +55,58 @@ export default async function EquiposPage({ searchParams }: PageProps<"/equipos"
         </label>
         {query.sortBy && <input type="hidden" name="sortBy" value={query.sortBy} />}
         {query.sortDirection && <input type="hidden" name="sortDirection" value={query.sortDirection} />}
-        <button type="submit">Filtrar</button>
-        <Link href={PATH}>Limpiar</Link>
-      </form>
+      </FilterForm>
 
-      {!equipos.ok ? (
-        <ErrorMessage error={equipos.error} />
-      ) : equipos.data.data.length === 0 ? (
-        <EmptyState>No hay equipos para los filtros seleccionados.</EmptyState>
-      ) : (
-        <>
-          <table>
-            <thead>
-              <tr>
-                <SortableHeader label="Nombre" field="nombre" pathname={PATH} searchParams={params} defaultField="nombre" />
-                <SortableHeader label="Abreviatura" field="abreviatura" pathname={PATH} searchParams={params} defaultField="nombre" />
-                <SortableHeader label="Departamento" field="departamento" pathname={PATH} searchParams={params} defaultField="nombre" />
-                <th className="num">Integrantes</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {equipos.data.data.map((equipo) => (
-                <tr key={equipo.id}>
-                  <td>{equipo.nombre}</td>
-                  <td>{equipo.abreviatura}</td>
-                  <td>{equipo.departamento ?? "—"}</td>
-                  <td className="num">{equipo.cantidadJugadores}</td>
-                  <td>
+      <Suspense key={searchKey(params)} fallback={<TableSkeleton />}>
+        <ListaEquipos equipos={equipos} params={params} />
+      </Suspense>
+    </>
+  );
+}
+
+/** Solo este bloque se vuelve a pedir al filtrar, ordenar o cambiar de página. */
+async function ListaEquipos({ equipos: consulta, params }: { equipos: ReturnType<typeof getEquipos>; params: SearchParams }) {
+  const equipos = await consulta;
+
+  if (!equipos.ok) {
+    return <ErrorMessage error={equipos.error} />;
+  }
+
+  if (equipos.data.data.length === 0) {
+    return <EmptyState>No hay equipos para los filtros seleccionados.</EmptyState>;
+  }
+
+  return (
+    <>
+      <div className="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <SortableHeader label="Nombre" field="nombre" pathname={PATH} searchParams={params} defaultField="nombre" />
+              <SortableHeader label="Abreviatura" field="abreviatura" pathname={PATH} searchParams={params} defaultField="nombre" />
+              <SortableHeader label="Departamento" field="departamento" pathname={PATH} searchParams={params} defaultField="nombre" />
+              <th className="num">Integrantes</th>
+              <th />
+            </tr>
+          </thead>
+          <tbody>
+            {equipos.data.data.map((equipo) => (
+              <tr key={equipo.id}>
+                <td>{equipo.nombre}</td>
+                <td>{equipo.abreviatura}</td>
+                <td>{equipo.departamento ?? "—"}</td>
+                <td className="num">{equipo.cantidadJugadores}</td>
+                <td>
+                  <div className="row-actions">
                     <Link href={`/equipos/${equipo.id}`}>Ver integrantes</Link>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <Pagination pathname={PATH} searchParams={params} page={equipos.data} />
-        </>
-      )}
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <Pagination pathname={PATH} searchParams={params} page={equipos.data} />
     </>
   );
 }

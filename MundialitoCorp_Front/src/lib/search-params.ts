@@ -35,6 +35,17 @@ export function pageQuery(searchParams: SearchParams, sortFields: readonly strin
 }
 
 /**
+ * Clave con los parámetros actuales, para la frontera de <Suspense> del bloque de resultados:
+ * al cambiar filtros, orden o página se monta una nueva y se ve el esqueleto solo en la tabla.
+ */
+export function searchKey(searchParams: SearchParams): string {
+  return Object.entries(searchParams)
+    .map(([key, raw]) => `${key}=${Array.isArray(raw) ? raw.join(",") : (raw ?? "")}`)
+    .sort()
+    .join("&");
+}
+
+/**
  * URL de la misma página con algunos parámetros cambiados. Un valor null o vacío quita el parámetro.
  * Cambiar cualquier parámetro que no sea la página vuelve a la página 1.
  */

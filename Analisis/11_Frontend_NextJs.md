@@ -111,6 +111,7 @@ Next.js 16.4 (App Router, TypeScript, Cache Components) en `MundialitoCorp_Front
 | Validación con `zod` en el formulario | Validación del navegador (`required`, `min`, `max`) y la de la API como única fuente de reglas | Evita duplicar las reglas del dominio. Los errores 400 de la API se muestran por campo. |
 | `lib/api/players`, `standings`, `scorers` | `torneos.api.ts` (tabla, goleadores, equipos y partidos del torneo), `equipos.api.ts`, `partidos.api.ts` | Siguen la forma de la API: tabla y goleadores son subrecursos del torneo. |
 | `DataTable` y `Filters` genéricos | Tablas y formularios GET por página, más `Pagination`, `SortableHeader`, `TorneoSelector`, `ErrorMessage`, `EmptyState` | Cada vista tiene columnas y filtros distintos; un componente genérico agregaba más configuración que la que ahorraba. |
+| Estilos mínimos (CSS Modules o Tailwind básico) | Hoja de estilos propia en `app/globals.css`: variables de color y una clase por componente | Sin dependencias de interfaz ni utilidades repartidas por el marcado. El mismo archivo define el modo claro y el oscuro. |
 | Idempotency-Key fija por formulario | Se crea en el primer envío, se reutiliza mientras ese intento está en curso y se renueva tras un error | La API guarda también las respuestas 4xx: corregir los datos con la misma clave respondería 409. |
 
 ### Decisiones propias
@@ -125,6 +126,11 @@ Next.js 16.4 (App Router, TypeScript, Cache Components) en `MundialitoCorp_Front
 - **URL sin errores 400.** `pageSize` se limita a 5, 10, 20 o 50, y `sortBy` a la lista de cada vista, así una URL editada a mano no termina en un 400.
 - **Fechas.** Se muestran en la hora de El Salvador; la API las entrega en UTC.
 - **Trazabilidad.** Cada llamada envía `X-Correlation-Id: web-<guid>`, que queda en los logs de la API y en `EventosDominio`.
+- **Presentación.** Cabecera fija con la sección visible marcada, encabezado por página, filtros y tablas en tarjeta, insignias de estado, marcador del partido y estados de carga con esqueleto. Tipografía Inter con `next/font`, servida desde el mismo dominio.
+- **Inicio con el estado del torneo.** La portada muestra el torneo en curso: equipos inscritos, partidos jugados y por jugar, las primeras posiciones de la tabla, los próximos partidos y los goleadores. Va bajo `<Suspense>`, así la portada se ve de inmediato y los datos llegan después.
+- **Solo se recarga la tabla.** Filtrar, ordenar, paginar y cambiar de torneo navegan del lado del cliente; cada lista pide sus datos dentro de un `<Suspense>` con clave en los parámetros de la URL. Los filtros siguen en la URL y la consulta se lanza antes del `await` para que no se serialice con lo que necesita el formulario.
+- **Modo claro y oscuro.** Un solo juego de variables con `light-dark()`; por omisión manda el sistema y el botón de la cabecera fija el tema (`data-theme` en `<html>`, guardado en `localStorage` y aplicado por un script en línea antes de pintar).
+- **`connection()` antes de cada llamada a la API.** El `X-Correlation-Id` se arma con `crypto.randomUUID()`, un valor que Next no puede prerenderizar; marcando la llamada como dato de request, lo que depende de la API queda bajo su `<Suspense>` y el resto de la página se prerenderiza.
 
 ### Verificación
 

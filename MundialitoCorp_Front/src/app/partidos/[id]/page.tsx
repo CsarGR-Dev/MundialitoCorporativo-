@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { EmptyState } from "@/components/EmptyState";
 import { ErrorMessage } from "@/components/ErrorMessage";
 import { EstadoPartidoBadge } from "@/components/EstadoPartidoBadge";
 import { getPartido } from "@/lib/api/partidos.api";
@@ -24,19 +25,28 @@ export default async function PartidoPage({ params }: PageProps<"/partidos/[id]"
 
   return (
     <>
-      <p>
-        <Link href={`/partidos?torneo=${p.torneoId}`}>← Partidos de {p.torneo}</Link>
-      </p>
-      <h1>
-        {p.equipoLocal} {formatMarcador(p.golesLocal, p.golesVisitante)} {p.equipoVisitante}
+      <Link href={`/partidos?torneo=${p.torneoId}`} className="back-link">
+        ← Partidos de {p.torneo}
+      </Link>
+
+      <h1 className="scoreboard">
+        <span className="equipo">{p.equipoLocal}</span>
+        <span className="marcador">{formatMarcador(p.golesLocal, p.golesVisitante)}</span>
+        <span className="equipo">{p.equipoVisitante}</span>
       </h1>
-      <p>
-        <EstadoPartidoBadge estado={p.estado} /> · {formatFechaHora(p.fechaProgramada)} · {p.sede ?? "Sin sede"}
+
+      <p className="meta-row">
+        <EstadoPartidoBadge estado={p.estado} />
+        <span>{formatFechaHora(p.fechaProgramada)}</span>
+        <span>·</span>
+        <span>{p.sede ?? "Sin sede"}</span>
       </p>
 
       {p.estado === "Programado" && (
-        <p>
-          <Link href={`/partidos/${p.id}/resultado`}>Registrar resultado</Link>
+        <p className="actions-row">
+          <Link href={`/partidos/${p.id}/resultado`} className="btn-link">
+            Registrar resultado
+          </Link>
         </p>
       )}
 
@@ -44,26 +54,28 @@ export default async function PartidoPage({ params }: PageProps<"/partidos/[id]"
         <>
           <h2>Goles</h2>
           {golesOrdenados.length === 0 ? (
-            <p className="muted">Partido sin goles.</p>
+            <EmptyState>Partido sin goles.</EmptyState>
           ) : (
-            <table>
-              <thead>
-                <tr>
-                  <th className="num">Minuto</th>
-                  <th>Jugador</th>
-                  <th>Equipo</th>
-                </tr>
-              </thead>
-              <tbody>
-                {golesOrdenados.map((gol) => (
-                  <tr key={gol.id}>
-                    <td className="num">{gol.minuto}&apos;</td>
-                    <td>{gol.jugador}</td>
-                    <td>{gol.equipo}</td>
+            <div className="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th className="num">Minuto</th>
+                    <th>Jugador</th>
+                    <th>Equipo</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {golesOrdenados.map((gol) => (
+                    <tr key={gol.id}>
+                      <td className="num">{gol.minuto}&apos;</td>
+                      <td>{gol.jugador}</td>
+                      <td>{gol.equipo}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </>
       )}

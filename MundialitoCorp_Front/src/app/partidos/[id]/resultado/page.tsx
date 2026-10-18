@@ -23,15 +23,26 @@ export default async function RegistrarResultadoPage({ params }: PageProps<"/par
   }
 
   const p = partido.data;
-  const volver = <Link href={`/partidos/${p.id}`}>← Volver al partido</Link>;
+  const volver = (
+    <Link href={`/partidos/${p.id}`} className="back-link">
+      ← Volver al partido
+    </Link>
+  );
 
   if (p.estado !== "Programado") {
     return (
       <>
-        <p>{volver}</p>
-        <h1>Registrar resultado</h1>
+        {volver}
+        <div className="page-head">
+          <div>
+            <p className="eyebrow">{p.equipoLocal} vs {p.equipoVisitante}</p>
+            <h1>Registrar resultado</h1>
+          </div>
+        </div>
         <div className="alert alert-ok">
-          {p.estado === "Jugado" ? "Este partido ya tiene su resultado registrado." : "El partido está cancelado; no admite resultado."}
+          <div className="alert-body">
+            {p.estado === "Jugado" ? "Este partido ya tiene su resultado registrado." : "El partido está cancelado; no admite resultado."}
+          </div>
         </div>
       </>
     );
@@ -50,11 +61,18 @@ export default async function RegistrarResultadoPage({ params }: PageProps<"/par
 
   return (
     <>
-      <p>{volver}</p>
-      <h1>Registrar resultado</h1>
-      <p>
-        {p.equipoLocal} vs {p.equipoVisitante} · {formatFechaHora(p.fechaProgramada)} · {p.sede ?? "Sin sede"}
-      </p>
+      {volver}
+      <div className="page-head">
+        <div>
+          <p className="eyebrow">
+            {p.equipoLocal} vs {p.equipoVisitante}
+          </p>
+          <h1>Registrar resultado</h1>
+          <p className="page-sub">
+            {formatFechaHora(p.fechaProgramada)} · {p.sede ?? "Sin sede"} · Indique el marcador y, por cada gol, el goleador y el minuto.
+          </p>
+        </div>
+      </div>
       <ResultadoForm
         local={{ id: p.equipoLocalId, nombre: p.equipoLocal, jugadores: toOpciones(jugadoresLocal.data.data) }}
         visitante={{ id: p.equipoVisitanteId, nombre: p.equipoVisitante, jugadores: toOpciones(jugadoresVisitante.data.data) }}

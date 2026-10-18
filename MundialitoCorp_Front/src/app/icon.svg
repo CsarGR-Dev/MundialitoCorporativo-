@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Mundialito Corporativo">
+  <rect width="32" height="32" rx="7" fill="#0b6e4f" />
+  <g fill="none" stroke="#ffffff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="16" cy="16" r="9" />
+    <path d="M16 10.5 21.2 14.3 19.2 20.4 12.8 20.4 10.8 14.3Z" />
+    <path d="M16 7v3.5M7.2 13.8l3.6.5M24.8 13.8l-3.6.5M11 24.4l1.8-4M21 24.4l-1.8-4" />
+  </g>
+</svg>

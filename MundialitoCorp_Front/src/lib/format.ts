@@ -4,12 +4,17 @@
 const TIME_ZONE = "America/El_Salvador";
 
 const fechaHora = new Intl.DateTimeFormat("es-SV", {
-  dateStyle: "medium",
-  timeStyle: "short",
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+  hourCycle: "h23",
   timeZone: TIME_ZONE,
 });
 
 const soloFecha = new Intl.DateTimeFormat("es-SV", { dateStyle: "medium", timeZone: "UTC" });
+
 
 export function formatFechaHora(isoUtc: string): string {
   return fechaHora.format(new Date(isoUtc));

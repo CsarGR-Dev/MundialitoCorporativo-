@@ -1,5 +1,7 @@
 import "server-only";
 
+import { connection } from "next/server";
+
 import type { ApiError, ApiResult } from "@/lib/types/api";
 
 /**
@@ -30,6 +32,9 @@ export function apiPost<T>(path: string, body: unknown, idempotencyKey: string):
 
 async function send<T>(method: string, path: string, options: RequestOptions): Promise<ApiResult<T>> {
   const url = buildUrl(path, options.query);
+  // Los datos se piden en cada request, nunca al construir: el CorrelationId es distinto cada vez y
+  // Next no puede prerenderizarlo. Con esto, lo que depende de la API queda bajo su <Suspense>.
+  await connection();
   // Cada llamada lleva su propio CorrelationId: en los logs de la API se distingue lo que pidió el frontend.
   const correlationId = `web-${crypto.randomUUID()}`;
 

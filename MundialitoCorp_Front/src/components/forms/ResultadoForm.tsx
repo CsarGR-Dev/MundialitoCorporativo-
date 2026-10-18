@@ -60,7 +60,7 @@ export function ResultadoForm({ local, visitante, action }: ResultadoFormProps) 
 
       <fieldset>
         <legend>Marcador</legend>
-        <div className="gol-row">
+        <div className="marcador-row">
           <MarcadorInput name="golesLocal" label={local.nombre} value={golesLocal} onChange={setGolesLocal} />
           <MarcadorInput name="golesVisitante" label={visitante.nombre} value={golesVisitante} onChange={setGolesVisitante} />
         </div>
