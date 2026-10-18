@@ -20,7 +20,7 @@ Debe estar en Infrastructure, funcionar con Docker y permitir probar la tabla in
 
 1. En el arranque de la API (`Program.cs`) se invoca una extensión `await app.InitializeDatabaseAsync();` definida en Infrastructure.
 2. Esta extensión:
-   - Crea la base y su esquema con los scripts de `Db/` (re-ejecutables), con política de reintentos (SQL Server puede tardar en estar listo dentro de Docker). Ver *Implementación real*: no se usan migraciones de EF Core.
+   - Crea la base y su esquema con los scripts de `Infrastructure/Initialization/Scripts/` (re-ejecutables), con política de reintentos (SQL Server puede tardar en estar listo dentro de Docker). Ver *Implementación real*: no se usan migraciones de EF Core.
    - Verifica si existen torneos o equipos (`AnyAsync`). Si hay datos, no hace nada (idempotente).
    - Si está vacía, inserta los datos usando las entidades de dominio y sus métodos de fábrica (respetando invariantes) y confirma con el **Unit of Work** en una sola transacción.
 3. Registra con log Information: `Seed ejecutado: {Tournaments} torneo, {Teams} equipos, {Players} jugadores, {Matches} partidos`.
@@ -30,7 +30,7 @@ Se descarta `HasData` de EF Core porque no permite usar la lógica de dominio ni
 
 ### Datos propuestos
 
-**Torneo (1)**: *Mundialito Corporativo 2026*, estado `EnCurso`, con inicio en el pasado. Los 4 equipos quedan inscritos en él. El catálogo de posiciones no forma parte del seed: lo crea el script de estructura (`Db/001`).
+**Torneo (1)**: *Mundialito Corporativo 2026*, estado `EnCurso`, con inicio en el pasado. Los 4 equipos quedan inscritos en él. El catálogo de posiciones no forma parte del seed: lo crea el script de estructura (`001_DDL_CrearBaseDatos.sql`).
 
 **Equipos (4)**
 
@@ -78,7 +78,6 @@ Fechas: los partidos jugados con fechas pasadas relativas a la fecha de ejecuci�
 ## Criterios de aceptación
 
 - [x] Con base vacía, al iniciar quedan 1 torneo en curso con 4 equipos inscritos, 20 jugadores, 6 partidos, 3 jugados.
-- [x] Script equivalente en `Db/003_DML_SeedInicial.sql` para cargar los mismos datos desde SSMS.
 - [x] Al reiniciar la API no se duplican datos.
 - [x] El código vive en Infrastructure.
 - [ ] Funciona con `docker-compose up` sin pasos manuales. Ya funciona con un servidor SQL Server sin la base, que es lo que encuentra la API en Docker; falta el `docker-compose.yml` (ítem 12).
@@ -90,7 +89,7 @@ Fechas: los partidos jugados con fechas pasadas relativas a la fecha de ejecuci�
 
 | Diseño inicial | Implementado | Motivo |
 |---|---|---|
-| `Database.MigrateAsync()` (migraciones de EF Core) | Los scripts `Db/001` y `Db/002`, incluidos en el ensamblado de Infrastructure, se ejecutan al iniciar | El esquema ya estaba definido y validado en los scripts (índices filtrados, CHECK, FK compuestas, vistas, descripciones). Con migraciones habría dos definiciones del mismo esquema que podrían diferir. Los scripts son re-ejecutables, así que correrlos en cada arranque no cambia una base existente. |
+| `Database.MigrateAsync()` (migraciones de EF Core) | Los scripts `001` y `002` (`Infrastructure/Initialization/Scripts/`), incluidos en el ensamblado de Infrastructure, se ejecutan al iniciar | El esquema ya estaba definido y validado en los scripts (índices filtrados, CHECK, FK compuestas, vistas, descripciones). Con migraciones habría dos definiciones del mismo esquema que podrían diferir. Los scripts son re-ejecutables, así que correrlos en cada arranque no cambia una base existente. |
 | Control con `Database:SeedOnStartup` | `Database:ApplySchemaOnStartup` y `Database:SeedOnStartup` (ambos `true`), más `ConnectionRetries` (10) y `ConnectionRetryDelay` (5 s) | Se puede apagar cada paso por separado; las pruebas de la API los apagan porque usan su propia base. |
 | Torneo con fecha de inicio fija | Fechas relativas al día del seed: el torneo empezó hace 14 días y termina en 30 | Los partidos jugados siempre quedan en el pasado y los pendientes en el futuro, el día que se ejecute. |
 | `AnyAsync` de EF para saber si está vacía | Una consulta SQL directa: `EXISTS` en `Torneos` o `Equipos`, incluidos los eliminados | Si alguien borró los datos del seed, no se vuelven a cargar. |
@@ -120,13 +119,12 @@ Si una regla de dominio rechazara un dato del seed, se lanza una excepción: los
 | `Infrastructure/Initialization/DatabaseOptions.cs` | Sección `Database` de appsettings |
 | `Infrastructure/Seed/SeedData.cs` | Datos del seed |
 | `Infrastructure/Seed/DatabaseSeeder.cs` | Carga con el dominio y el Unit of Work |
-| `Db/003_DML_SeedInicial.sql` | Los mismos datos para SSMS (no genera eventos de dominio) |
 
 ### Pruebas
 
 - `IntegrationTests/Seed/DatabaseSeedSqlServerTests.cs`:
   - A partir de un servidor **sin la base**, como en Docker, se crean la base, el esquema y las vistas, y se cargan los conteos exactos, los eventos procesados, la tabla esperada y el goleador líder.
   - Un segundo arranque no duplica datos.
-  - `Db/003` carga lo mismo, es re-ejecutable y deja la misma tabla.
+  - Si está la carpeta local `Db/` (fuera del repositorio), se valida además que su script de seed para SSMS carga lo mismo, es re-ejecutable y deja la misma tabla.
 - `UnitTests/Infrastructure/SqlScriptsTests.cs`: scripts incluidos en orden, cambio del nombre de la base, rechazo de nombres inseguros y división por `GO`.
 - El fixture de integración crea su base con los mismos scripts incluidos, así que todas las pruebas de integración validan el camino que usa la API.

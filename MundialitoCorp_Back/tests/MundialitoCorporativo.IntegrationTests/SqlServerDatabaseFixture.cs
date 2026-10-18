@@ -6,7 +6,7 @@ using MundialitoCorporativo.Infrastructure.Persistence;
 namespace MundialitoCorporativo.IntegrationTests;
 
 /// <summary>
-/// Crea una base de datos temporal en SQL Server ejecutando el script de estructura Db/001_DDL_CrearBaseDatos.sql
+/// Crea una base de datos temporal en SQL Server ejecutando el script de estructura 001_DDL_CrearBaseDatos.sql
 /// (el mismo que usa la API al iniciar), de modo que las pruebas validan el mapeo de EF Core contra el esquema real.
 /// La base se elimina al terminar.
 /// </summary>
@@ -59,7 +59,7 @@ public sealed class SqlServerDatabaseFixture : IAsyncLifetime
     public MundialitoDbContext CreateContext() =>
         new(new DbContextOptionsBuilder<MundialitoDbContext>().UseSqlServer(ConnectionString).Options);
 
-    /// <summary>Ejecuta un script de Db/ por lotes (separador GO) sobre la base indicada.</summary>
+    /// <summary>Ejecuta un script SQL por lotes (separador GO) sobre la base indicada.</summary>
     public static async Task RunScriptAsync(string serverConnectionString, string script, string databaseName)
     {
         await using var connection = new SqlConnection(serverConnectionString);
@@ -83,8 +83,11 @@ public sealed class SqlServerDatabaseFixture : IAsyncLifetime
         await command.ExecuteNonQueryAsync();
     }
 
-    /// <summary>Busca un script de la carpeta Db/ del repositorio (los de datos no van incluidos en el ensamblado).</summary>
-    public static string FindDbScript(string fileName)
+    /// <summary>
+    /// Busca un script de la carpeta local Db/ (scripts de trabajo para SSMS, fuera del repositorio).
+    /// Devuelve null si la carpeta no existe, por ejemplo en un clon del repositorio.
+    /// </summary>
+    public static string? FindDbScript(string fileName)
     {
         for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)
         {
@@ -96,7 +99,7 @@ public sealed class SqlServerDatabaseFixture : IAsyncLifetime
             }
         }
 
-        throw new FileNotFoundException($"No se encontró {ScriptFolder}/{fileName} (búsqueda desde {AppContext.BaseDirectory}).");
+        return null;
     }
 }
 

@@ -1395,7 +1395,7 @@
                 "resultado"
               ]
             },
-            "description": "Genera el evento de dominio PartidoResultRegistered (ver Db/013_QRY_EventosDominio.sql).",
+            "description": "Genera el evento de dominio PartidoResultRegistered.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"golesLocal\": 2,\n  \"golesVisitante\": 1,\n  \"goles\": [\n    {\n      \"jugadorId\": \"{{jugadorLocalId}}\",\n      \"equipoId\": \"{{equipoLocalId}}\",\n      \"minuto\": 10\n    },\n    {\n      \"jugadorId\": \"{{jugadorLocalId}}\",\n      \"equipoId\": \"{{equipoLocalId}}\",\n      \"minuto\": 55\n    },\n    {\n      \"jugadorId\": \"{{jugadorVisitanteId}}\",\n      \"equipoId\": \"{{equipoVisitanteId}}\",\n      \"minuto\": 80\n    }\n  ]\n}",

@@ -3,7 +3,7 @@ using System.Text.RegularExpressions;
 namespace MundialitoCorporativo.Infrastructure.Initialization;
 
 /// <summary>
-/// Scripts de estructura de la carpeta Db/, incluidos en el ensamblado. Son la única definición del esquema:
+/// Scripts de estructura de Initialization/Scripts, incluidos en el ensamblado. Son la única definición del esquema:
 /// los usan el arranque de la API, Docker y las pruebas de integración.
 /// </summary>
 internal static partial class SqlScripts
@@ -19,7 +19,7 @@ internal static partial class SqlScripts
 
     public static string Load(string fileName)
     {
-        using var stream = typeof(SqlScripts).Assembly.GetManifestResourceStream($"Db.{fileName}")
+        using var stream = typeof(SqlScripts).Assembly.GetManifestResourceStream($"Scripts.{fileName}")
             ?? throw new InvalidOperationException($"El script {fileName} no está incluido en el ensamblado.");
         using var reader = new StreamReader(stream);
         return reader.ReadToEnd();

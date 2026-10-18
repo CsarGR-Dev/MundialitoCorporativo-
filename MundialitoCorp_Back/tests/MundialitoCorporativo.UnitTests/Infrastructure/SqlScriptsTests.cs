@@ -3,7 +3,7 @@ using MundialitoCorporativo.Infrastructure.Initialization;
 namespace MundialitoCorporativo.UnitTests.Infrastructure;
 
 /// <summary>
-/// Scripts de Db/ incluidos en el ensamblado, que la API ejecuta al iniciar (ítem 9).
+/// Scripts de estructura incluidos en el ensamblado, que la API ejecuta al iniciar (ítem 9).
 /// </summary>
 public class SqlScriptsTests
 {

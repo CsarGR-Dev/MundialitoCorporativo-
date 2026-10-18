@@ -56,7 +56,7 @@ public static class DependencyInjection
         services.AddScoped<IIdempotencyStore, SqlIdempotencyStore>();
         services.AddHostedService<IdempotencyCleanupService>();
 
-        // Preparación de la base al iniciar: esquema de Db/ y seed si está vacía (ítem 9).
+        // Preparación de la base al iniciar: esquema (Initialization/Scripts) y seed si está vacía (ítem 9).
         services.Configure<DatabaseOptions>(configuration.GetSection(DatabaseOptions.SectionName));
         services.AddScoped<DatabaseSeeder>();
         services.AddScoped(serviceProvider => ActivatorUtilities.CreateInstance<DatabaseInitializer>(serviceProvider, connectionString));

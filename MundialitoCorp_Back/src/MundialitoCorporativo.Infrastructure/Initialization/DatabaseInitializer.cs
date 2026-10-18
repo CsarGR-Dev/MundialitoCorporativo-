@@ -6,7 +6,7 @@ using MundialitoCorporativo.Infrastructure.Seed;
 namespace MundialitoCorporativo.Infrastructure.Initialization;
 
 /// <summary>
-/// Deja la base lista al iniciar la API: espera a SQL Server, aplica el esquema de Db/ y ejecuta el seed
+/// Deja la base lista al iniciar la API: espera a SQL Server, aplica el esquema de Initialization/Scripts y ejecuta el seed
 /// si la base está vacía (requerimiento ítem 9). Con Docker basta con <c>docker-compose up</c>.
 /// </summary>
 internal sealed partial class DatabaseInitializer(
@@ -75,7 +75,7 @@ internal sealed partial class DatabaseInitializer(
         }
     }
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Esquema de la base {DatabaseName} verificado con los scripts de Db/")]
+    [LoggerMessage(Level = LogLevel.Information, Message = "Esquema de la base {DatabaseName} verificado con los scripts de estructura")]
     private static partial void LogSchemaApplied(ILogger logger, string databaseName);
 
     [LoggerMessage(Level = LogLevel.Warning,

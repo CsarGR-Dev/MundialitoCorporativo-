@@ -80,7 +80,7 @@ Reglas del lado de lectura:
 - Parámetros siempre parametrizados (`@Param`), nunca concatenación de valores.
 - `sortBy` se resuelve contra una lista blanca de columnas.
 - Total de registros con `COUNT(*) OVER()` en la misma consulta o con `QueryMultipleAsync` (dos sentencias, un solo roundtrip).
-- Índices de apoyo definidos en `Db/001_DDL_CrearBaseDatos.sql` (detalle en `Analisis/16_Analisis_Base_Datos.md`, sección 7).
+- Índices de apoyo definidos en `001_DDL_CrearBaseDatos.sql` (`Infrastructure/Initialization/Scripts/`) (detalle en `Analisis/16_Analisis_Base_Datos.md`, sección 7).
 
 ### Ejemplo de consulta de tabla de posiciones (Dapper)
 
@@ -141,5 +141,4 @@ OFFSET @Skip ROWS FETCH NEXT @Take ROWS ONLY;
 - **Queries** (`Application/*/Queries/`): los handlers dependen de interfaces de lectura (`Application/Abstractions/Queries/`) que Infrastructure implementa con Dapper (`Infrastructure/Queries/`). Así Application no depende de Dapper y la prueba de arquitectura lo sigue verificando.
 - **SQL**: `SqlFilter` arma el WHERE solo con los filtros enviados (parametrizados, `LIKE` con comodines escapados); `SqlSort` traduce `sortBy` a columnas de una lista blanca con desempate estable; `PagedSql` ejecuta conteo y página (`OFFSET/FETCH`) en un solo viaje con `QueryMultipleAsync`.
 - **Fechas**: las consultas devuelven `TODATETIMEOFFSET(columna, 0)` para exponerlas en UTC sin ambigüedad.
-- **SQL de referencia** para SSMS: `Db/010_QRY_TablaPosiciones.sql` y `Db/011_QRY_Goleadores.sql`.
 - **Pruebas**: `UnitTests/Application/` (despachador, handlers, registro de handlers y sortBy) e `IntegrationTests/Cqrs/CqrsSqlServerTests.cs` (pila completa contra SQL Server).

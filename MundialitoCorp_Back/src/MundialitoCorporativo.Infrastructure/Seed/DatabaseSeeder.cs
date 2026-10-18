@@ -131,7 +131,7 @@ internal sealed partial class DatabaseSeeder(
         if (!cache.TryGetValue(id, out var posicion))
         {
             posicion = await posicionJuegoRepository.GetByIdAsync(id, cancellationToken)
-                ?? throw new InvalidOperationException($"Falta la posición de juego {id} del catálogo (Db/001).");
+                ?? throw new InvalidOperationException($"Falta la posición de juego {id} del catálogo (001_DDL_CrearBaseDatos.sql).");
             cache[id] = posicion;
         }
 

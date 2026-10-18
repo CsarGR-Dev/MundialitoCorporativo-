@@ -4,7 +4,7 @@ Sistema de gestión de un torneo de fútbol corporativo: equipos, integrantes, c
 
 API en **.NET 10** con **Clean Architecture**, **CQRS** (EF Core para escritura, Dapper para lectura), **Unit of Work**, **Result Pattern**, REST idempotente y observabilidad; base de datos **SQL Server 2022**.
 
-> **Estado:** en desarrollo. Ver [Estado por ítem](#estado-por-ítem) y la [bitácora de cambios](Documentacion/Bitacora.md).
+> **Estado:** en desarrollo. Ver [Estado por ítem](#estado-por-ítem).
 
 ---
 
@@ -16,16 +16,14 @@ MundialitoCorporativo/
 │   ├── src/
 │   │   ├── MundialitoCorporativo.Domain          Modelos, reglas de negocio, Result Pattern, eventos de dominio
 │   │   ├── MundialitoCorporativo.Application     CQRS: despachador, Commands, Queries, validaciones y contratos
-│   │   ├── MundialitoCorporativo.Infrastructure  EF Core, repositorios, Unit of Work y consultas Dapper
+│   │   ├── MundialitoCorporativo.Infrastructure  EF Core, repositorios, Unit of Work, consultas Dapper y scripts SQL del esquema
 │   │   └── MundialitoCorporativo.Api             Controladores REST, idempotencia, observabilidad, errores HTTP y composition root
 │   └── tests/
 │       ├── MundialitoCorporativo.UnitTests         Arquitectura, dominio, CQRS, Unit of Work, idempotencia, mapeo HTTP y observabilidad
 │       └── MundialitoCorporativo.IntegrationTests  CQRS, idempotencia, trazabilidad y API por HTTP contra SQL Server
 ├── MundialitoCorp_Front/      Frontend Next.js (tabla, goleadores, partidos, resultados, equipos e integrantes)
-├── Db/                        Scripts SQL (estructura, vistas, datos iniciales y consultas de referencia)
 ├── Postman/                   Colección y entorno de Postman
-├── Analisis/                  Análisis del requerimiento, un documento por ítem
-└── Documentacion/             Bitácora de cambios
+└── Analisis/                  Análisis del requerimiento, un documento por ítem
 ```
 
 Reglas de dependencia (verificadas con pruebas de arquitectura): Domain no depende de ninguna capa; Application depende solo de Domain; Infrastructure implementa los contratos de Application; Api solo orquesta.
@@ -38,7 +36,7 @@ Reglas de dependencia (verificadas con pruebas de arquitectura): Domain no depen
 
 ## Base de datos
 
-**La API prepara la base sola al iniciar:** si no existe, la crea con los scripts de `Db/` y, si está vacía, carga los datos iniciales (ítem 9). No hace falta ningún paso manual; basta con que el SQL Server de la cadena de conexión esté disponible.
+**La API prepara la base sola al iniciar:** si no existe, la crea con los scripts SQL de Infrastructure y, si está vacía, carga los datos iniciales (ítem 9). No hace falta ningún paso manual; basta con que el SQL Server de la cadena de conexión esté disponible.
 
 Datos iniciales: 1 torneo en curso (*Mundialito Corporativo 2026*), 4 equipos inscritos, 5 jugadores por equipo, 6 partidos (3 con resultado y 8 goles). La tabla de posiciones se puede consultar de inmediato:
 
@@ -49,11 +47,10 @@ Datos iniciales: 1 torneo en curso (*Mundialito Corporativo 2026*), 4 equipos in
 | 3 | Recursos Humanos Athletic | 1 | 0 | 1 | 0 | 1 | 1 | 0 | 1 |
 | 4 | Finanzas United | 1 | 0 | 0 | 1 | 1 | 2 | −1 | 0 |
 
-Para trabajar desde SSMS sin la API, ejecutar en orden:
+Los scripts están en `MundialitoCorp_Back/src/MundialitoCorporativo.Infrastructure/Initialization/Scripts/` y son la única definición del esquema (no se usan migraciones de EF Core). También se pueden ejecutar desde SSMS, en orden:
 
-1. `Db/001_DDL_CrearBaseDatos.sql` — base `Mundialito`: tablas, relaciones, restricciones, índices y catálogo de posiciones de juego.
-2. `Db/002_VIEW_TablaPosicionesGoleadores.sql` — vistas `vw_TablaPosiciones` y `vw_Goleadores`.
-3. `Db/003_DML_SeedInicial.sql` — los mismos datos iniciales.
+1. `001_DDL_CrearBaseDatos.sql` — base `Mundialito`: tablas, relaciones, restricciones, índices y catálogo de posiciones de juego.
+2. `002_VIEW_TablaPosicionesGoleadores.sql` — vistas `vw_TablaPosiciones` y `vw_Goleadores`.
 
 La sección `Database` de `appsettings.json` controla este comportamiento (`ApplySchemaOnStartup`, `SeedOnStartup`, reintentos de conexión).
 
@@ -74,7 +71,7 @@ dotnet test
 dotnet run --project src/MundialitoCorporativo.Api      # http://localhost:5000
 ```
 
-Las pruebas de integración (incluida la API completa con `WebApplicationFactory`) crean una base temporal ejecutando `Db/001` y la eliminan al terminar. Usan la instancia local por defecto; otra instancia se indica con la variable de entorno `MUNDIALITO_TEST_SQLSERVER`. Si no hay un SQL Server disponible, se omiten.
+Las pruebas de integración (incluida la API completa con `WebApplicationFactory`) crean una base temporal ejecutando `001_DDL_CrearBaseDatos.sql` y la eliminan al terminar. Usan la instancia local por defecto; otra instancia se indica con la variable de entorno `MUNDIALITO_TEST_SQLSERVER`. Si no hay un SQL Server disponible, se omiten.
 
 ## API REST
 
@@ -132,7 +129,7 @@ Todas tienen filtros, paginación y orden en la URL. Los errores de la API se mu
 - **Logs estructurados** con Serilog sobre `ILogger<T>`: consola en JSON (texto legible en desarrollo) y archivo diario en JSON en `logs/` dentro de la carpeta desde la que se ejecuta la API. No se registran cuerpos de petición, query string ni cadenas de conexión.
 - **Trazabilidad por request**: la API acepta `X-Correlation-Id` (o genera uno) y devuelve `X-Correlation-Id` y `X-Trace-Id` (W3C Trace Context). Ambos valores están en cada log del request y en todo ProblemDetails.
 - **Duración**: un log por request, `HTTP GET /api/equipos respondió 200 en 12.3 ms`, con nivel Information, Warning (4xx o más de 500 ms) o Error (5xx).
-- **Eventos de dominio**: al crear un equipo y al registrar un resultado, el evento se guarda en `EventosDominio` con el TraceId y el CorrelationId del request, se despacha a su handler y queda en el log. Consulta en `Db/013_QRY_EventosDominio.sql`.
+- **Eventos de dominio**: al crear un equipo y al registrar un resultado, el evento se guarda en `EventosDominio` con el TraceId y el CorrelationId del request, se despacha a su handler y queda en el log.
 - **OpenTelemetry**: con `Observability:OtlpEndpoint` configurado (por ejemplo, `http://localhost:4317` de Jaeger), se exportan las trazas de ASP.NET Core, SQL Server y los Commands/Queries.
 
 Detalle: [Analisis/07_Observabilidad_Trazabilidad.md](Analisis/07_Observabilidad_Trazabilidad.md).
@@ -152,7 +149,7 @@ Los **modelos** están en español con el mismo nombre que las tablas y columnas
 | 6 | REST + idempotencia | Implementado: controladores REST e `Idempotency-Key` persistida en `RegistrosIdempotencia` |
 | 7 | Observabilidad | Implementado: Serilog con logs JSON, CorrelationId y TraceId por request, duración de requests, eventos de dominio registrados, despachados y en el log; OpenTelemetry con exportación OTLP (Jaeger con Docker, pendiente) |
 | 8 | Requisitos funcionales | Implementado y expuesto por HTTP: torneos, equipos, jugadores por equipo, partidos, resultados, tabla de posiciones y goleadores |
-| 9 | Seed de datos | Implementado: al iniciar, la API crea la base con los scripts de `Db/` y, si está vacía, carga 4 equipos, 20 jugadores y 6 partidos (3 con resultado) con el dominio y el Unit of Work; script equivalente `Db/003` |
+| 9 | Seed de datos | Implementado: al iniciar, la API crea la base con los scripts SQL de Infrastructure y, si está vacía, carga 4 equipos, 20 jugadores y 6 partidos (3 con resultado) con el dominio y el Unit of Work |
 | 10 | Filtros y paginación | Implementado en todos los GET de colección (paginación en SQL, sortBy con lista blanca) |
 | 11 | Frontend Next.js | Implementado: equipos e integrantes, partidos, registro de resultado con Idempotency-Key, tabla de posiciones y goleadores, con filtros, paginación y manejo de errores; verificado con un navegador contra la API |
 | 12 | Dockerización | Pendiente |

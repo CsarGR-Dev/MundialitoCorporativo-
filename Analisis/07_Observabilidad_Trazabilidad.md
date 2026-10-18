@@ -169,7 +169,7 @@ Datos que **no** se registran: cuerpos de petición, query string, headers, cont
 | Despacho | Tras el commit, `IDomainEventDispatcher` (Application) entrega cada evento a sus `IDomainEventHandler<T>`. Sin bus externo. |
 | Log | El Unit of Work registra cada evento (`DomainEventId`, `DomainEventType`, agregado) y los handlers registran el hecho de negocio: `Equipo creado: {EquipoId} {NombreEquipo} ({Abreviatura})` y `Resultado registrado en el partido {PartidoId} del torneo {TorneoId}: …`. |
 | Procesado | Si todos los handlers terminan bien se guarda `FechaProcesado`. Si uno falla, la operación no se revierte (los datos ya están confirmados), el fallo se registra con nivel Error y el evento queda pendiente (`IX_EventosDominio_Pendientes`). |
-| Trazabilidad | El mismo `TraceId` une el request, los logs, el span del Command y la fila de `EventosDominio`. Consulta en `Db/013_QRY_EventosDominio.sql`. |
+| Trazabilidad | El mismo `TraceId` une el request, los logs, el span del Command y la fila de `EventosDominio`. |
 
 Los handlers se ejecutan con `CancellationToken.None`: si el cliente cancela la petición después del commit, el evento igual se procesa.
 

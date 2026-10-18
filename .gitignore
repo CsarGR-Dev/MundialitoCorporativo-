@@ -480,3 +480,7 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+
+# Material de trabajo local (no se versiona): scripts SQL para SSMS y documentación personal
+/Db/
+/Documentacion/

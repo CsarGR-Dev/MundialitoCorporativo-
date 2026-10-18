@@ -119,7 +119,7 @@ Archivos en `Postman/`: la colección (64 requests en 10 carpetas), el entorno `
 
 | Diseño inicial | Implementado | Motivo |
 |---|---|---|
-| Carpeta `postman/` | `Postman/` | Mismo estilo que `Db/`, `Analisis/` y `Documentacion/`. |
+| Carpeta `postman/` | `Postman/` | Mismo estilo que `Analisis/`. |
 | Entorno `Mundialito.Docker` | Se agrega con la dockerización (ítem 12) | El puerto de la API en Docker se define en ese paso. |
 | `00 Health` con `GET /health` | `00 Datos del seed` | La API no tiene endpoint de health todavía. La primera carpeta verifica el seed: torneo, tabla esperada, goleador líder y partidos programados. |
 | Carpetas por recurso con Torneos al final | `01 Torneos` primero | El flujo crea primero el torneo y luego inscribe equipos, programa partidos y registra el resultado. Así la colección se ejecuta completa en orden. |

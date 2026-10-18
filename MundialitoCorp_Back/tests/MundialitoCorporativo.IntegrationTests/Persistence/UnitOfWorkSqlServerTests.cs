@@ -13,7 +13,7 @@ using MundialitoCorporativo.Infrastructure.Persistence.Repositories;
 namespace MundialitoCorporativo.IntegrationTests.Persistence;
 
 /// <summary>
-/// Valida el lado de escritura (EF Core + UnitOfWork) contra SQL Server, sobre el esquema creado con Db/001.
+/// Valida el lado de escritura (EF Core + UnitOfWork) contra SQL Server, sobre el esquema creado con 001_DDL_CrearBaseDatos.sql.
 /// </summary>
 [Collection(SqlServerCollection.Name)]
 public sealed class UnitOfWorkSqlServerTests(SqlServerDatabaseFixture fixture)

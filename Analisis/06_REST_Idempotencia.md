@@ -142,7 +142,6 @@ public interface IIdempotencyStore   // Application/Abstractions/Idempotency
 - Una clave vencida (24 h) o una reserva `EnProceso` abandonada (más de 2 minutos, por ejemplo si la API se detuvo a mitad de la petición) puede volver a usarse.
 - `Infrastructure/Idempotency/IdempotencyCleanupService.cs`: `BackgroundService` que borra cada hora las claves vencidas, en lotes de 1000.
 - Configuración en `appsettings.json`, sección `Idempotency` (`Expiration`, `InProgressTimeout`, `CleanupInterval`).
-- Consultas de revisión para SSMS: `Db/012_QRY_Idempotencia.sql`.
 
 ### Pruebas
 

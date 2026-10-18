@@ -75,10 +75,8 @@ MundialitoCorporativo/
 │   ├── Directory.Build.props
 │   └── MundialitoCorporativo.slnx
 ├── MundialitoCorp_Front/
-├── Db/
 ├── Postman/
 ├── Analisis/
-├── Documentacion/
 ├── docker-compose.yml
 └── README.md
 ```
@@ -222,5 +220,5 @@ La posición del jugador **no es un enum**: es el catálogo `PosicionesJuego` (P
 | 13 | Diagrama de arquitectura | `13_Diagrama_Arquitectura.md` |
 | 14 | Colección de Postman | `14_Coleccion_Postman.md` |
 | 15 | Pruebas unitarias | `15_Pruebas_Unitarias.md` |
-| — | Base de datos (complementario) | `16_Analisis_Base_Datos.md` + `Db/001_DDL_CrearBaseDatos.sql` |
+| — | Base de datos (complementario) | `16_Analisis_Base_Datos.md` + `Infrastructure/Initialization/Scripts/001_DDL_CrearBaseDatos.sql` |
 | — | Convención de nombres (complementario) | `17_Convencion_Nombres.md` |

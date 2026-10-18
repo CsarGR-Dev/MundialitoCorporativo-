@@ -21,7 +21,7 @@ internal sealed class PosicionJuegoConfiguration : IEntityTypeConfiguration<Posi
         builder.HasIndex(posicion => posicion.Nombre).IsUnique().HasDatabaseName("UQ_PosicionesJuego_Nombre");
         builder.HasIndex(posicion => posicion.Abreviatura).IsUnique().HasDatabaseName("UQ_PosicionesJuego_Abreviatura");
 
-        // Datos de referencia: forman parte de la estructura (igual que el MERGE de Db/001).
+        // Datos de referencia: forman parte de la estructura (igual que el MERGE de 001_DDL_CrearBaseDatos.sql).
         builder.HasData(
             new PosicionJuego(1, "Portero", "POR", 1),
             new PosicionJuego(2, "Defensa", "DEF", 2),

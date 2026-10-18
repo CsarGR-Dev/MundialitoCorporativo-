@@ -12,7 +12,7 @@ namespace MundialitoCorporativo.IntegrationTests.Seed;
 /// <summary>
 /// Seed de datos (ítem 9) como en Docker: a partir de un servidor sin la base, la API crea la base y su esquema
 /// y carga 4 equipos, 5 jugadores por equipo y 6 partidos (3 con resultado). La tabla queda lista de inmediato.
-/// También se valida que el script Db/003 deja exactamente la misma tabla.
+/// Si existe la carpeta local Db/, también se valida que el script 003 deja exactamente la misma tabla.
 /// </summary>
 [Collection(SqlServerCollection.Name)]
 public sealed class DatabaseSeedSqlServerTests(SqlServerDatabaseFixture fixture) : IAsyncLifetime
@@ -89,8 +89,11 @@ public sealed class DatabaseSeedSqlServerTests(SqlServerDatabaseFixture fixture)
     public async Task SeedScript_ShouldLoadSameDataAndBeReexecutable()
     {
         SkipIfUnavailable();
+        var seedScriptPath = SqlServerDatabaseFixture.FindDbScript("003_DML_SeedInicial.sql");
+        Skip.If(seedScriptPath is null, "La carpeta local Db/ no está disponible (no forma parte del repositorio).");
+
         await SqlServerDatabaseFixture.RunScriptAsync(fixture.ServerConnectionString, SqlScripts.Load(SqlScripts.CrearBaseDatos), _databaseName);
-        var seedScript = await File.ReadAllTextAsync(SqlServerDatabaseFixture.FindDbScript("003_DML_SeedInicial.sql"));
+        var seedScript = await File.ReadAllTextAsync(seedScriptPath);
 
         await SqlServerDatabaseFixture.RunScriptAsync(fixture.ServerConnectionString, seedScript, _databaseName);
         await SqlServerDatabaseFixture.RunScriptAsync(fixture.ServerConnectionString, seedScript, _databaseName);

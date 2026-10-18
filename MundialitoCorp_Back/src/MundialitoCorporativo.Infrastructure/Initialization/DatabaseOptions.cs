@@ -7,7 +7,7 @@ public sealed class DatabaseOptions
 {
     public const string SectionName = "Database";
 
-    /// <summary>Crea la base y su esquema con los scripts de Db/ (re-ejecutables) si aún no existen.</summary>
+    /// <summary>Crea la base y su esquema con los scripts de Initialization/Scripts (re-ejecutables) si aún no existen.</summary>
     public bool ApplySchemaOnStartup { get; init; } = true;
 
     /// <summary>Carga los datos iniciales del requerimiento (ítem 9) si la base está vacía.</summary>

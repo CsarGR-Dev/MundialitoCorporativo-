@@ -8,7 +8,7 @@
 | Intercalación | `Modern_Spanish_CI_AS` (sin distinguir mayúsculas, sí acentos) |
 | Esquema | `dbo` |
 | Idioma de objetos | Español (tablas, columnas y valores de catálogo) |
-| Scripts | `Db/001_DDL_CrearBaseDatos.sql`, `Db/002_VIEW_TablaPosicionesGoleadores.sql` |
+| Scripts | `Infrastructure/Initialization/Scripts/001_DDL_CrearBaseDatos.sql`, `002_VIEW_TablaPosicionesGoleadores.sql` |
 
 ---
 
@@ -353,7 +353,7 @@ Las entidades del dominio tienen **los mismos nombres que tablas y columnas** (v
 
 ---
 
-## 11. Vistas (`Db/002_VIEW_TablaPosicionesGoleadores.sql`)
+## 11. Vistas (`002_VIEW_TablaPosicionesGoleadores.sql`)
 
 | Vista | Columnas | Uso |
 |---|---|---|
@@ -407,7 +407,7 @@ Las entidades del dominio tienen **los mismos nombres que tablas y columnas** (v
 
 ## 14. Relación entre los scripts y EF Core
 
-- Los scripts de `Db/` son el **diseño de referencia** y permiten trabajar desde SSMS desde el primer día.
+- Los scripts de `Infrastructure/Initialization/Scripts/` son el **diseño de referencia** y permiten trabajar desde SSMS desde el primer día.
 - Las configuraciones de EF Core replican exactamente este esquema; las pruebas de integración lo verifican contra una base creada con estos scripts.
 - **Decisión final (ítem 9):** no se usan migraciones de EF Core. Al iniciar, la API ejecuta `001` y `002` (re-ejecutables, incluidos en el ensamblado de Infrastructure) y así crea la base en Docker. El esquema tiene una sola definición. Ver `Analisis/09_Seed_Datos.md`.
 

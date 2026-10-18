@@ -2,7 +2,7 @@ namespace MundialitoCorporativo.Infrastructure.Seed;
 
 /// <summary>
 /// Datos iniciales del requerimiento (ítem 9): 1 torneo en curso, 4 equipos, 5 jugadores por equipo
-/// y 6 partidos, 3 con resultado y goleadores. Los mismos datos están en Db/003_DML_SeedInicial.sql.
+/// y 6 partidos, 3 con resultado y goleadores.
 /// </summary>
 /// <remarks>
 /// Las fechas son relativas al día del seed: los partidos jugados quedan en el pasado y los pendientes
@@ -22,7 +22,7 @@ internal static class SeedData
     /// <summary>Hora de los partidos en UTC (12:00 en El Salvador, UTC−6).</summary>
     public const int HoraPartidoUtc = 18;
 
-    // Posiciones de juego del catálogo de Db/001.
+    // Posiciones de juego del catálogo de 001_DDL_CrearBaseDatos.sql.
     private const byte Portero = 1;
     private const byte Defensa = 2;
     private const byte Mediocampista = 3;

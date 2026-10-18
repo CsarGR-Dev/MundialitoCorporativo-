@@ -88,7 +88,7 @@ volumes:
 
 Notas:
 - La contraseña se toma de un archivo `.env` (se versiona `.env.example`, no `.env`).
-- `docker-compose up` (o `docker compose up`) levanta todo; la API crea la base con los scripts de `Db/` y siembra automáticamente (ítem 9).
+- `docker-compose up` (o `docker compose up`) levanta todo; la API crea la base con los scripts de `Infrastructure/Initialization/Scripts/` y siembra automáticamente (ítem 9).
 - Endpoint `/health` en la API con `AddHealthChecks().AddSqlServer(...)`.
 - `.dockerignore` en API y frontend (`bin/`, `obj/`, `node_modules/`, `.next/`, `.vs/`).
 
