@@ -4,7 +4,7 @@ Sistema de gestión de un torneo de fútbol corporativo: equipos, integrantes, c
 
 API en **.NET 10** con **Clean Architecture**, **CQRS** (EF Core para escritura, Dapper para lectura), **Unit of Work**, **Result Pattern**, REST idempotente y observabilidad; base de datos **SQL Server 2022**.
 
-> **Estado:** en desarrollo. Ver [Estado por ítem](#estado-por-ítem).
+> Todos los ítems del requerimiento están implementados. Ver [Estado por ítem](#estado-por-ítem) y [Decisiones y supuestos](#decisiones-y-supuestos).
 
 ---
 
@@ -169,6 +169,22 @@ Detalle: [Analisis/07_Observabilidad_Trazabilidad.md](Analisis/07_Observabilidad
 ## Convención de nombres
 
 Los **modelos** están en español con el mismo nombre que las tablas y columnas (`Equipo.Nombre`, `Partido.EquipoLocalId`, `EstadoPartido.Jugado`). **Lo técnico** sigue la convención de .NET en inglés (`Entity`, `AggregateRoot`, `Result`, `Create`, `EquipoErrors`, `TablaPosicionesCalculator`). Detalle: [Analisis/17_Convencion_Nombres.md](Analisis/17_Convencion_Nombres.md).
+
+## Decisiones y supuestos
+
+Donde el requerimiento no lo define, se tomaron estos criterios:
+
+- **Formato de torneo:** liga de todos contra todos, sin fase de grupos ni eliminatorias. Los equipos se inscriben en un torneo y la tabla de posiciones y los goleadores se calculan por torneo.
+- **Tabla de posiciones:** victoria 3 puntos, empate 1, derrota 0. Orden por puntos, diferencia de gol y goles a favor; como último desempate, el nombre del equipo, para que el orden sea siempre el mismo.
+- **Resultados:** solo se registran en partidos programados y una sola vez (409 si se repite). Los goles de cada equipo deben coincidir con el marcador y cada goleador debe pertenecer al equipo al que se le acredita el gol (no se modelan autogoles).
+- **Eliminación lógica:** `DELETE` marca el registro como eliminado; repetirlo responde 204 y un id que nunca existió, 404. No se eliminan equipos con partidos ni partidos ya jugados (409).
+- **PUT y PATCH:** `PUT` reemplaza y no crea recursos (404 si no existe). `PATCH` usa JSON Merge Patch y solo cambia los campos enviados. Un jugador no cambia de equipo una vez registrado.
+- **Idempotencia:** `Idempotency-Key` obligatoria en todo POST. La clave se guarda fuera de la transacción del Command, para que exista aunque este falle; reutilizarla con otro cuerpo responde 409 y una respuesta 5xx la libera para reintentar.
+- **Base de datos:** el esquema se define con scripts SQL en Infrastructure, no con migraciones de EF Core. La API los aplica al iniciar y carga los datos iniciales solo si la base está vacía.
+- **Frontend:** el navegador nunca llama a la API; lo hace el servidor de Next.js (Server Components y Server Actions), así que no hace falta CORS ni exponer la URL interna. Las fechas se muestran en hora de El Salvador y la API trabaja en UTC.
+- **Fuera de alcance:** autenticación y autorización (no se solicitan) y un bus de mensajes externo; los eventos de dominio se despachan en proceso.
+
+Las 23 reglas de negocio con su respuesta HTTP están en [Analisis/00_Analisis_General.md](Analisis/00_Analisis_General.md#6-reglas-de-negocio-y-criterios-propios) (sección 6).
 
 ## Estado por ítem
 
