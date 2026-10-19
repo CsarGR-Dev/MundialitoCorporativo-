@@ -1,0 +1,11 @@
+# Las dependencias y el build se generan dentro de la imagen; los .env locales no se copian.
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+.env*
+!.env.example
+npm-debug.log*
+*.md
+Dockerfile
+.dockerignore

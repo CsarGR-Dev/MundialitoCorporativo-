@@ -1,0 +1,63 @@
+# Mundialito Corporativo: base de datos, API, frontend y Jaeger (ítem 12).
+# Levantar todo:  docker-compose up --build      (o: docker compose up --build)
+#
+# Al iniciar, la API crea la base con los scripts de Infrastructure y carga los datos iniciales (ítem 9).
+# Las variables ${...} son opcionales: se pueden cambiar en un archivo .env (ver .env.example).
+
+name: mundialito
+
+services:
+  db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: Developer
+      MSSQL_SA_PASSWORD: ${DB_PASSWORD:-Mundialito_2026!}
+    ports:
+      # 14330 en el equipo para no chocar con un SQL Server local en 1433. En SSMS: localhost,14330
+      - "${DB_PORT:-14330}:1433"
+    volumes:
+      - mundialito-data:/var/opt/mssql
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$${MSSQL_SA_PASSWORD}\" -C -b -Q \"SELECT 1\" > /dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+  api:
+    build: ./MundialitoCorp_Back
+    environment:
+      ConnectionStrings__Default: Server=db;Database=Mundialito;User Id=sa;Password=${DB_PASSWORD:-Mundialito_2026!};TrustServerCertificate=True
+      # Documento OpenAPI y Scalar (http://localhost:5000/scalar) sin poner el contenedor en modo Development.
+      OpenApi__Enabled: "true"
+      # En el contenedor los logs van a la consola (docker compose logs api), sin archivo.
+      Observability__LogFilePath: ""
+      # Trazas de OpenTelemetry hacia Jaeger (http://localhost:16686).
+      Observability__OtlpEndpoint: http://jaeger:4317
+    ports:
+      - "${API_PORT:-5000}:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+      jaeger:
+        condition: service_started
+
+  frontend:
+    build: ./MundialitoCorp_Front
+    environment:
+      # El navegador no llama a la API: lo hace el servidor de Next.js por la red interna de Docker.
+      API_URL: http://api:8080
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    depends_on:
+      - api
+
+  jaeger:
+    # Jaeger v2: recibe OTLP en 4317 (red interna) y guarda las trazas en memoria.
+    image: jaegertracing/jaeger:2.22.0
+    ports:
+      - "16686:16686"
+
+volumes:
+  mundialito-data:

@@ -109,7 +109,7 @@ newman run postman/MundialitoCorporativo.postman_collection.json -e postman/Mund
 - [ ] Todos los endpoints cubiertos y agrupados por recurso.
 - [ ] Carpetas específicas de idempotencia, paginación/filtros y errores.
 - [ ] Ninguna URL fija: todo usa `{{baseUrl}}` y variables.
-- [ ] La colección corre completa en verde contra el entorno Docker recién levantado.
+- [x] La colección corre completa en verde contra el entorno Docker recién levantado.
 
 ## Implementación real
 
@@ -120,7 +120,7 @@ Archivos en `Postman/`: la colección (64 requests en 10 carpetas), el entorno `
 | Diseño inicial | Implementado | Motivo |
 |---|---|---|
 | Carpeta `postman/` | `Postman/` | Mismo estilo que `Analisis/`. |
-| Entorno `Mundialito.Docker` | Se agrega con la dockerización (ítem 12) | El puerto de la API en Docker se define en ese paso. |
+| Entorno `Mundialito.Docker` | No se agrega: el entorno `Mundialito Local` sirve para los dos | En Docker la API se publica en el mismo puerto (5000). La colección corre en verde contra la API en Docker. |
 | `00 Health` con `GET /health` | `00 Datos del seed` | La API no tiene endpoint de health todavía. La primera carpeta verifica el seed: torneo, tabla esperada, goleador líder y partidos programados. |
 | Carpetas por recurso con Torneos al final | `01 Torneos` primero | El flujo crea primero el torneo y luego inscribe equipos, programa partidos y registra el resultado. Así la colección se ejecuta completa en orden. |
 | Ids sueltos (`equipoId`, `matchId`) | Variables de colección con nombres del dominio (`equipoLocalId`, `partidoId`, …) | Se capturan en las pruebas de cada request. |

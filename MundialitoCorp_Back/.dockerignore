@@ -1,0 +1,10 @@
+# Solo entra al build lo que necesita la API: los proyectos de src y Directory.Build.props.
+**/bin/
+**/obj/
+**/logs/
+**/.vs/
+**/*.user
+tests/
+*.slnx
+Dockerfile
+.dockerignore

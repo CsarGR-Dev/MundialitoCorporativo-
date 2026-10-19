@@ -80,7 +80,7 @@ Fechas: los partidos jugados con fechas pasadas relativas a la fecha de ejecuci�
 - [x] Con base vacía, al iniciar quedan 1 torneo en curso con 4 equipos inscritos, 20 jugadores, 6 partidos, 3 jugados.
 - [x] Al reiniciar la API no se duplican datos.
 - [x] El código vive en Infrastructure.
-- [ ] Funciona con `docker-compose up` sin pasos manuales. Ya funciona con un servidor SQL Server sin la base, que es lo que encuentra la API en Docker; falta el `docker-compose.yml` (ítem 12).
+- [x] Funciona con `docker-compose up` sin pasos manuales (ítem 12).
 - [x] `GET /api/torneos/{id}/tabla-posiciones` devuelve la tabla esperada inmediatamente.
 
 ## Implementación real

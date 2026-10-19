@@ -120,7 +120,7 @@ Opcional: endpoint `GET /api/eventos-dominio` (paginado, Dapper) para consultar 
 - [x] Cada respuesta incluye `X-Correlation-Id` y `X-Trace-Id`.
 - [x] Cada request genera un log con su duración.
 - [x] Al crear equipo y registrar resultado se guarda un registro en `EventosDominio` y se emite un log.
-- [ ] (Valorable) Trazas visibles en Jaeger. La exportación OTLP ya está implementada; falta el servicio `jaeger` en docker-compose (ítem 12).
+- [x] (Valorable) Trazas visibles en Jaeger: servicio `jaeger` en docker-compose (ítem 12), UI en http://localhost:16686, servicio `mundialito-api`.
 
 ## Implementación real
 

@@ -194,7 +194,7 @@ La posición del jugador **no es un enum**: es el catálogo `PosicionesJuego` (P
 
 | Riesgo | Impacto | Mitigación |
 |---|---|---|
-| Docker no está en el PATH del equipo de desarrollo. | No se puede validar `docker-compose up`. | Instalar Docker Desktop antes de iniciar la fase de contenedores. |
+| Docker no está en el PATH del equipo de desarrollo. | No se puede validar `docker-compose up`. | Resuelto: Docker Desktop instalado y `docker-compose up` validado (ítem 12). |
 | SQL Server tarda en arrancar dentro de Compose. | La API falla al conectarse en el primer intento. | `healthcheck` en el servicio DB + `depends_on: condition: service_healthy` + reintentos en la conexión. |
 | Inyección SQL vía `sortBy`. | Seguridad. | Lista blanca de columnas permitidas por consulta. |
 | Concurrencia al registrar resultados. | Doble registro. | `RowVersion` (concurrencia optimista) + idempotencia. |

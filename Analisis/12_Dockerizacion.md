@@ -9,107 +9,103 @@ Debe incluir:
 
 Debe levantarse con: `docker-compose up`.
 
-## Dockerfile API (`MundialitoCorp_Back/src/MundialitoCorporativo.Api/Dockerfile`)
+## Implementación real
 
-Multi-stage:
+### Archivos
 
-1. **build** – `mcr.microsoft.com/dotnet/sdk:10.0`
-   - Copiar `.slnx` y `.csproj` primero, `dotnet restore` (aprovecha caché de capas).
-   - Copiar el resto, `dotnet publish -c Release -o /app/publish --no-restore`.
-2. **runtime** – `mcr.microsoft.com/dotnet/aspnet:10.0`
-   - Usuario no root (`USER app`).
-   - `ASPNETCORE_URLS=http://+:8080`, `EXPOSE 8080`.
-   - `ENTRYPOINT ["dotnet", "MundialitoCorporativo.Api.dll"]`.
-
-Contexto de build: raíz del repositorio (para incluir todos los proyectos referenciados).
-
-## Dockerfile Frontend (`MundialitoCorp_Front/Dockerfile`)
-
-Multi-stage:
-
-1. **deps** – `node:20-alpine`, `npm ci`.
-2. **build** – `npm run build` con `output: 'standalone'`.
-3. **runner** – `node:20-alpine`, usuario no root, copiar `.next/standalone`, `.next/static` y `public`; `EXPOSE 3000`; `CMD ["node", "server.js"]`.
-
-`NEXT_PUBLIC_API_URL` se pasa como `ARG` en build (se incrusta en el bundle del cliente).
-
-## docker-compose.yml (raíz)
-
-```yaml
-services:
-  db:
-    image: mcr.microsoft.com/mssql/server:2022-latest
-    environment:
-      ACCEPT_EULA: "Y"
-      MSSQL_SA_PASSWORD: "${DB_PASSWORD:-Mundialito#2026}"
-    ports: ["1433:1433"]
-    volumes: [mundialito-data:/var/opt/mssql]
-    healthcheck:
-      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -C -Q 'SELECT 1' || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 20s
-
-  api:
-    build:
-      context: .
-      dockerfile: MundialitoCorp_Back/src/MundialitoCorporativo.Api/Dockerfile
-    environment:
-      ASPNETCORE_ENVIRONMENT: Docker
-      ConnectionStrings__Default: "Server=db;Database=Mundialito;User Id=sa;Password=${DB_PASSWORD:-Mundialito#2026};TrustServerCertificate=True"
-      Database__SeedOnStartup: "true"
-      Cors__AllowedOrigins__0: "http://localhost:3000"
-      OTEL_EXPORTER_OTLP_ENDPOINT: "http://jaeger:4317"
-    ports: ["5000:8080"]
-    depends_on:
-      db:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
-
-  frontend:
-    build:
-      context: MundialitoCorp_Front
-      args:
-        NEXT_PUBLIC_API_URL: "http://localhost:5000"
-    environment:
-      API_URL: "http://api:8080"
-    ports: ["3000:3000"]
-    depends_on: [api]
-
-  jaeger:            # opcional valorable
-    image: jaegertracing/all-in-one:latest
-    ports: ["16686:16686", "4317:4317"]
-
-volumes:
-  mundialito-data:
+```
+MundialitoCorporativo/
+├── docker-compose.yml          DB + API + Frontend (+ Jaeger)
+├── .env.example                variables opcionales: contraseña de sa y puertos
+├── MundialitoCorp_Back/
+│   ├── Dockerfile              imagen de la API
+│   └── .dockerignore
+└── MundialitoCorp_Front/
+    ├── Dockerfile              imagen del frontend
+    └── .dockerignore
 ```
 
-Notas:
-- La contraseña se toma de un archivo `.env` (se versiona `.env.example`, no `.env`).
-- `docker-compose up` (o `docker compose up`) levanta todo; la API crea la base con los scripts de `Infrastructure/Initialization/Scripts/` y siembra automáticamente (ítem 9).
-- Endpoint `/health` en la API con `AddHealthChecks().AddSqlServer(...)`.
-- `.dockerignore` en API y frontend (`bin/`, `obj/`, `node_modules/`, `.next/`, `.vs/`).
+El compose va en la raíz porque `docker-compose up` se ejecuta desde ahí; cada Dockerfile va junto a su proyecto, que es su contexto de build.
 
-## URLs tras levantar
+### Dockerfile API (`MundialitoCorp_Back/Dockerfile`)
+
+Multi-stage, contexto `MundialitoCorp_Back`:
+
+1. **build** – `mcr.microsoft.com/dotnet/sdk:10.0`
+   - Copia `Directory.Build.props` y los 4 `.csproj`, y hace `dotnet restore` del proyecto Api: esa capa queda en caché mientras no cambien las dependencias.
+   - Copia `src/` y hace `dotnet publish -c Release --no-restore /p:UseAppHost=false`. Los scripts SQL del esquema viajan dentro del ensamblado de Infrastructure (recurso incrustado).
+2. **runtime** – `mcr.microsoft.com/dotnet/aspnet:10.0`
+   - Usuario sin privilegios de la imagen oficial (`USER $APP_UID`).
+   - Escucha en el puerto 8080 (valor por defecto de la imagen), `EXPOSE 8080`.
+   - `ENTRYPOINT ["dotnet", "MundialitoCorporativo.Api.dll"]`.
+
+El `.dockerignore` deja fuera `bin/`, `obj/`, `logs/`, `.vs/`, `tests/` y la solución: al build solo entran los proyectos de `src/`.
+
+### Dockerfile Frontend (`MundialitoCorp_Front/Dockerfile`)
+
+Multi-stage sobre `node:22-alpine`, contexto `MundialitoCorp_Front`:
+
+1. **deps** – `npm ci` con `package.json` y `package-lock.json`.
+2. **build** – `npm run build` con `output: "standalone"`. El build no consulta la API.
+3. **runtime** – copia `.next/standalone`, `.next/static` y `public`; usuario `node`; `EXPOSE 3000`; `CMD ["node", "server.js"]`.
+
+`API_URL` se lee al ejecutar, no en el build: la misma imagen sirve para cualquier entorno.
+
+### docker-compose.yml (raíz)
+
+| Servicio | Imagen | Puerto en el equipo | Detalle |
+|---|---|---|---|
+| `db` | `mcr.microsoft.com/mssql/server:2022-latest` (Developer) | 14330 | Volumen `mundialito-data`. `healthcheck` con `sqlcmd` (`SELECT 1`). |
+| `api` | build de `./MundialitoCorp_Back` | 5000 → 8080 | Espera a `db` con `condition: service_healthy`. Cadena de conexión con usuario `sa`, OpenAPI/Scalar activos y trazas hacia Jaeger. |
+| `frontend` | build de `./MundialitoCorp_Front` | 3000 | `API_URL=http://api:8080`: Next.js llama a la API por la red interna de Docker. |
+| `jaeger` | `jaegertracing/jaeger:2.22.0` (Jaeger v2) | 16686 | Recibe OTLP por gRPC en `jaeger:4317` (solo en la red interna) y guarda las trazas en memoria. |
+
+Variables opcionales en `.env` (se versiona `.env.example`, no `.env`): `DB_PASSWORD`, `DB_PORT`, `API_PORT`, `FRONTEND_PORT`. Sin `.env`, el compose usa los mismos valores por defecto.
+
+Al levantar, la API crea la base con los scripts de Infrastructure y carga los datos iniciales (ítem 9). No hay pasos manuales.
+
+### Comandos
+
+```bash
+docker-compose up --build        # construye y levanta todo (-d para segundo plano)
+docker-compose ps                # estado; db debe aparecer como healthy
+docker-compose logs -f api       # logs de la API en JSON
+docker-compose down              # detiene y conserva la base
+docker-compose down -v           # detiene y borra la base (el próximo up vuelve a sembrar)
+```
+
+### URLs
 
 | Servicio | URL |
 |---|---|
 | Frontend | http://localhost:3000 |
-| API (Scalar, solo en Development) | http://localhost:5000/scalar |
-| Health | http://localhost:5000/health |
-| Jaeger UI | http://localhost:16686 |
-| SQL Server | localhost,1433 |
+| API | http://localhost:5000/api |
+| Scalar | http://localhost:5000/scalar |
+| Documento OpenAPI | http://localhost:5000/openapi/v1.json |
+| Jaeger UI | http://localhost:16686 (servicio `mundialito-api`) |
+| SQL Server | `localhost,14330`, usuario `sa`, contraseña de `DB_PASSWORD` |
 
-## Pre-requisito local
+### Ajustes respecto al diseño inicial
 
-Docker no está disponible actualmente en el PATH del equipo de desarrollo: instalar Docker Desktop (con WSL2) antes de esta fase y validar con `docker compose version`.
+| Diseño inicial | Implementado | Motivo |
+|---|---|---|
+| Dockerfile de la API en `src/MundialitoCorporativo.Api/` con contexto en la raíz | `MundialitoCorp_Back/Dockerfile` con contexto `MundialitoCorp_Back` | Cada Dockerfile junto a su proyecto; el contexto solo incluye lo que necesita la API. |
+| `node:20-alpine` | `node:22-alpine` | Versión LTS vigente. |
+| `NEXT_PUBLIC_API_URL` como `ARG` de build y CORS en la API | Solo `API_URL` en tiempo de ejecución | El navegador nunca llama a la API (ver ítem 11): no hace falta CORS ni reconstruir la imagen para cambiar la URL. |
+| SQL Server en el puerto 1433 | 14330 en el equipo | No choca con un SQL Server instalado en el equipo. Dentro de Docker sigue siendo 1433. |
+| `ASPNETCORE_ENVIRONMENT: Docker` | Producción con `OpenApi__Enabled=true` | Scalar disponible en Docker sin activar el modo Development. En `appsettings.json` está apagado; en Development, encendido. |
+| `Database__SeedOnStartup` explícito | Valor por defecto de `appsettings.json` | El seed ya está activo por defecto y no duplica datos al reiniciar. |
+| Logs a archivo | `Observability__LogFilePath` vacío | En un contenedor los logs van a la consola (`docker-compose logs`). |
+| `jaegertracing/all-in-one:latest` con 4317 publicado | `jaegertracing/jaeger:2.22.0`, solo la UI publicada | Jaeger v2, la línea con soporte (la 1.x quedó descontinuada); versión fija para builds reproducibles. La API llega a 4317 por la red interna. |
+| Endpoint `/health` y healthcheck de la API | No incluido | Criterio propio: no lo pide el requerimiento. El `depends_on` crítico es API → DB, que sí tiene healthcheck. |
 
 ## Criterios de aceptación
 
-- [ ] `docker-compose up --build` en una máquina limpia levanta DB, API y frontend sin pasos manuales.
-- [ ] La API espera a que la DB esté saludable.
-- [ ] El frontend muestra datos del seed al abrir http://localhost:3000.
-- [ ] Imágenes multi-stage y ejecutadas con usuario no root.
-- [ ] Sin secretos reales versionados.
+- [x] `docker-compose up --build` levanta DB, API, frontend y Jaeger sin pasos manuales (verificado con Docker Desktop sin imágenes ni volúmenes previos).
+- [x] La API espera a que la DB esté saludable.
+- [x] Al iniciar en un volumen nuevo, la API crea la base y siembra: 1 torneo, 4 equipos, 20 jugadores, 6 partidos (3 con resultado).
+- [x] El frontend muestra datos del seed al abrir http://localhost:3000.
+- [x] Scalar en http://localhost:5000/scalar y trazas de la API en Jaeger.
+- [x] La colección de Postman corre en verde contra la API en Docker (64 requests, 215 aserciones).
+- [x] Imágenes multi-stage y ejecutadas con usuario no root.
+- [x] Sin secretos reales versionados: `.env` está en `.gitignore`; la contraseña por defecto es solo para desarrollo local.

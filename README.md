@@ -23,12 +23,36 @@ MundialitoCorporativo/
 │       └── MundialitoCorporativo.IntegrationTests  CQRS, idempotencia, trazabilidad y API por HTTP contra SQL Server
 ├── MundialitoCorp_Front/      Frontend Next.js (torneos, equipos e integrantes, partidos, resultados, tabla y goleadores)
 ├── Postman/                   Colección y entorno de Postman
-└── Analisis/                  Análisis del requerimiento, un documento por ítem
+├── Analisis/                  Análisis del requerimiento, un documento por ítem
+├── docker-compose.yml         Base de datos, API, frontend y Jaeger
+└── .env.example               Variables opcionales de docker-compose
 ```
+
+Cada proyecto tiene su `Dockerfile` y `.dockerignore` (`MundialitoCorp_Back/` y `MundialitoCorp_Front/`).
 
 Reglas de dependencia (verificadas con pruebas de arquitectura): Domain no depende de ninguna capa; Application depende solo de Domain; Infrastructure implementa los contratos de Application; Api solo orquesta.
 
-## Requisitos
+## Ejecutar con Docker
+
+Requisito: Docker Desktop (o Docker Engine con Compose). Desde la raíz del repositorio:
+
+```bash
+docker-compose up --build
+```
+
+Levanta SQL Server, la API, el frontend y Jaeger. La API espera a que la base esté lista, crea el esquema y carga los datos iniciales; no hay pasos manuales.
+
+| Servicio | URL |
+|---|---|
+| Frontend | http://localhost:3000 |
+| API | http://localhost:5000/api |
+| Scalar | http://localhost:5000/scalar |
+| Jaeger (trazas) | http://localhost:16686 |
+| SQL Server | `localhost,14330` (usuario `sa`, contraseña `Mundialito_2026!`) |
+
+La contraseña y los puertos se pueden cambiar copiando `.env.example` como `.env`. Para detener: `docker-compose down` (conserva la base) o `docker-compose down -v` (la borra; el siguiente `up` vuelve a sembrar). Detalle: [Analisis/12_Dockerizacion.md](Analisis/12_Dockerizacion.md).
+
+## Requisitos para ejecutar sin Docker
 
 - .NET SDK 10
 - Node.js 20 o superior (frontend)
@@ -75,7 +99,7 @@ Las pruebas de integración (incluida la API completa con `WebApplicationFactory
 
 ## API REST
 
-Base: `http://localhost:5000/api`. En desarrollo, el documento OpenAPI está en `/openapi/v1.json` y la interfaz de Scalar para explorar y probar los endpoints en `http://localhost:5000/scalar`.
+Base: `http://localhost:5000/api`. En desarrollo y en Docker, el documento OpenAPI está en `/openapi/v1.json` y la interfaz de Scalar para explorar y probar los endpoints en `http://localhost:5000/scalar` (se controla con `OpenApi:Enabled`).
 
 | Recurso | Operaciones |
 |---|---|
@@ -131,7 +155,7 @@ Los listados tienen filtros, paginación y orden en la URL. Las altas usan `Idem
 - **Trazabilidad por request**: la API acepta `X-Correlation-Id` (o genera uno) y devuelve `X-Correlation-Id` y `X-Trace-Id` (W3C Trace Context). Ambos valores están en cada log del request y en todo ProblemDetails.
 - **Duración**: un log por request, `HTTP GET /api/equipos respondió 200 en 12.3 ms`, con nivel Information, Warning (4xx o más de 500 ms) o Error (5xx).
 - **Eventos de dominio**: al crear un equipo y al registrar un resultado, el evento se guarda en `EventosDominio` con el TraceId y el CorrelationId del request, se despacha a su handler y queda en el log.
-- **OpenTelemetry**: con `Observability:OtlpEndpoint` configurado (por ejemplo, `http://localhost:4317` de Jaeger), se exportan las trazas de ASP.NET Core, SQL Server y los Commands/Queries.
+- **OpenTelemetry**: con `Observability:OtlpEndpoint` configurado (en Docker, `http://jaeger:4317`), se exportan las trazas de ASP.NET Core, SQL Server y los Commands/Queries.
 
 Detalle: [Analisis/07_Observabilidad_Trazabilidad.md](Analisis/07_Observabilidad_Trazabilidad.md).
 
@@ -148,12 +172,12 @@ Los **modelos** están en español con el mismo nombre que las tablas y columnas
 | 4 | Unit of Work | Implementado y probado |
 | 5 | Result Pattern | Implementado: Result en Domain y mapeo a 200/201/204/400/404/409 con ProblemDetails |
 | 6 | REST + idempotencia | Implementado: controladores REST e `Idempotency-Key` persistida en `RegistrosIdempotencia` |
-| 7 | Observabilidad | Implementado: Serilog con logs JSON, CorrelationId y TraceId por request, duración de requests, eventos de dominio registrados, despachados y en el log; OpenTelemetry con exportación OTLP (Jaeger con Docker, pendiente) |
+| 7 | Observabilidad | Implementado: Serilog con logs JSON, CorrelationId y TraceId por request, duración de requests, eventos de dominio registrados, despachados y en el log; OpenTelemetry con exportación OTLP y trazas en Jaeger (Docker) |
 | 8 | Requisitos funcionales | Implementado y expuesto por HTTP: torneos, equipos, jugadores por equipo, partidos, resultados, tabla de posiciones y goleadores |
 | 9 | Seed de datos | Implementado: al iniciar, la API crea la base con los scripts SQL de Infrastructure y, si está vacía, carga 4 equipos, 20 jugadores y 6 partidos (3 con resultado) con el dominio y el Unit of Work |
 | 10 | Filtros y paginación | Implementado en todos los GET de colección (paginación en SQL, sortBy con lista blanca) |
 | 11 | Frontend Next.js | Implementado: alta, edición y baja de torneos, equipos, integrantes y partidos; inscripción de equipos; registro de resultado; tabla de posiciones y goleadores; filtros, paginación y manejo de errores; POST con Idempotency-Key. Verificado con un navegador contra la API |
-| 12 | Dockerización | Pendiente |
+| 12 | Dockerización | Implementado: Dockerfile de API y frontend (multi-stage, usuario no root) y `docker-compose.yml` con DB, API, frontend y Jaeger; `docker-compose up` levanta todo con los datos iniciales. Verificado desde cero con la colección de Postman en verde |
 | 13 | Diagrama de arquitectura | Pendiente |
 | 14 | Colección de Postman | Implementado: 64 requests en 10 carpetas con pruebas (idempotencia, filtros, paginación, errores, trazabilidad) y entorno local; validada con Newman |
 | 15 | Pruebas | Todo el mínimo cubierto (tabla, puntos, diferencia de gol, Result Pattern, idempotencia, Unit of Work) más integración por HTTP, observabilidad y seed: 229 pruebas |

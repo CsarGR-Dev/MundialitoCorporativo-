@@ -27,7 +27,8 @@ app.UseExceptionHandler();
 app.UseStatusCodePages();
 
 // Documento OpenAPI en /openapi/v1.json y Scalar en /scalar para explorar y probar los endpoints.
-if (app.Environment.IsDevelopment())
+// Se activa con OpenApi:Enabled (en desarrollo y en docker-compose), sin poner el contenedor en modo Development.
+if (app.Configuration.GetValue<bool>("OpenApi:Enabled"))
 {
     app.MapOpenApi();
     app.MapScalarApiReference(options => options
