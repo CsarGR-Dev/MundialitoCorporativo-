@@ -27,8 +27,8 @@ El objetivo no es solo que el sistema funcione, sino que cada patrón sea **visi
 
 - Repositorio público en GitHub con historial de commits progresivo y mensajes descriptivos.
 - `README.md` con: descripción, arquitectura, cómo ejecutar (`docker-compose up`), cómo ejecutar pruebas, endpoints, decisiones de diseño y supuestos.
-- Diagrama de arquitectura en `docs/arquitectura/`.
-- Colección y environment de Postman en `postman/`.
+- Diagrama de arquitectura en `Arquitectura/`.
+- Colección y environment de Postman en `Postman/`.
 - Proyectos de prueba en `MundialitoCorp_Back/tests/`.
 
 ## Criterios de aceptación

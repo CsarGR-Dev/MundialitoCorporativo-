@@ -132,8 +132,27 @@ sequenceDiagram
 | Frontend | 1, 3 |
 | Docker | 1 |
 
+## Implementación real
+
+El diagrama está en [`Arquitectura/README.md`](../Arquitectura/README.md), con las imágenes exportadas en `Arquitectura/img/`. Las vistas de arriba fueron el borrador; la versión final se centra en el sistema del Mundialito:
+
+- **0. Vista general:** frontend con sus secciones, API con sus recursos, SQL Server con sus tablas y Jaeger, dentro de Docker Compose.
+- **A. Modelo de datos:** `Torneos`, `TorneoEquipos`, `Equipos`, `Jugadores`, `PosicionesJuego`, `Partidos` y `Goles` con sus relaciones.
+- **B. Ciclo de un torneo:** de crear el torneo a cerrarlo, con el endpoint de cada paso.
+- **1 a 11:** un diagrama por cada elemento exigido, en el orden del requerimiento, con los nombres reales (19 Commands y 12 Queries, `RegisterPartidoResultCommandHandler`, los cuatro eventos de dominio, las páginas del frontend) y ejemplos de los datos iniciales.
+
+### Ajustes respecto al diseño inicial
+
+| Diseño inicial | Implementado | Motivo |
+|---|---|---|
+| Carpeta `docs/arquitectura/` | `Arquitectura/` en la raíz | Mismo estilo que `Analisis/` y `Postman/`. |
+| Tres vistas grandes | Vista general, modelo de datos, ciclo del torneo y un diagrama por elemento | Cada diagrama se explica en pocos segundos, se corresponde uno a uno con la lista del requerimiento y muestra el contenido del Mundialito, no solo la arquitectura genérica. |
+| `IdempotencyFilter` | `IdempotencyMiddleware` | Es un middleware: va después del enrutamiento y antes de los controladores. |
+| `RegisterMatchResultHandler` | `RegisterPartidoResultCommandHandler` | Nombre real. |
+| Fuente draw.io opcional | Solo Mermaid (fuente) y PNG exportado | GitHub dibuja Mermaid sin herramientas extra y el diagrama se versiona como texto. |
+
 ## Criterios de aceptación
 
-- [ ] Los 11 elementos exigidos aparecen en el diagrama.
-- [ ] El diagrama está en el repositorio y visible desde el README.
-- [ ] Coincide con la implementación real (nombres de clases y servicios).
+- [x] Los 11 elementos exigidos aparecen en el diagrama (un diagrama por elemento en `Arquitectura/README.md`).
+- [x] El diagrama está en el repositorio y visible desde el README.
+- [x] Coincide con la implementación real (nombres de clases y servicios).

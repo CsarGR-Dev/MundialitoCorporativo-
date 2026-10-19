@@ -24,6 +24,7 @@ MundialitoCorporativo/
 ├── MundialitoCorp_Front/      Frontend Next.js (torneos, equipos e integrantes, partidos, resultados, tabla y goleadores)
 ├── Postman/                   Colección y entorno de Postman
 ├── Analisis/                  Análisis del requerimiento, un documento por ítem
+├── Arquitectura/              Diagrama de arquitectura (Mermaid e imágenes)
 ├── docker-compose.yml         Base de datos, API, frontend y Jaeger
 └── .env.example               Variables opcionales de docker-compose
 ```
@@ -31,6 +32,12 @@ MundialitoCorporativo/
 Cada proyecto tiene su `Dockerfile` y `.dockerignore` (`MundialitoCorp_Back/` y `MundialitoCorp_Front/`).
 
 Reglas de dependencia (verificadas con pruebas de arquitectura): Domain no depende de ninguna capa; Application depende solo de Domain; Infrastructure implementa los contratos de Application; Api solo orquesta.
+
+## Arquitectura
+
+![Vista general](Arquitectura/img/00_vista_general.png)
+
+El diagrama completo está en [Arquitectura/](Arquitectura/README.md): vista general, modelo de datos del Mundialito (torneos, equipos, jugadores, partidos y goles), ciclo de un torneo con sus endpoints y un diagrama por cada elemento de la arquitectura (capas, CQRS, EF Core, Dapper, UnitOfWork, idempotency storage, eventos, logs, trace flow, frontend y Docker), con ejemplos de los datos iniciales.
 
 ## Ejecutar con Docker
 
@@ -178,7 +185,7 @@ Los **modelos** están en español con el mismo nombre que las tablas y columnas
 | 10 | Filtros y paginación | Implementado en todos los GET de colección (paginación en SQL, sortBy con lista blanca) |
 | 11 | Frontend Next.js | Implementado: alta, edición y baja de torneos, equipos, integrantes y partidos; inscripción de equipos; registro de resultado; tabla de posiciones y goleadores; filtros, paginación y manejo de errores; POST con Idempotency-Key. Verificado con un navegador contra la API |
 | 12 | Dockerización | Implementado: Dockerfile de API y frontend (multi-stage, usuario no root) y `docker-compose.yml` con DB, API, frontend y Jaeger; `docker-compose up` levanta todo con los datos iniciales. Verificado desde cero con la colección de Postman en verde |
-| 13 | Diagrama de arquitectura | Pendiente |
+| 13 | Diagrama de arquitectura | Implementado: vista general, modelo de datos, ciclo de un torneo y un diagrama por cada uno de los 11 elementos exigidos, en Mermaid con su imagen |
 | 14 | Colección de Postman | Implementado: 64 requests en 10 carpetas con pruebas (idempotencia, filtros, paginación, errores, trazabilidad) y entorno local; validada con Newman |
 | 15 | Pruebas | Todo el mínimo cubierto (tabla, puntos, diferencia de gol, Result Pattern, idempotencia, Unit of Work) más integración por HTTP, observabilidad y seed: 229 pruebas |
 
