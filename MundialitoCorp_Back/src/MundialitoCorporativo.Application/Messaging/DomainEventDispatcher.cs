@@ -1,18 +1,19 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
-using Microsoft.Extensions.DependencyInjection;
+using MediatR;
 using MundialitoCorporativo.Application.Abstractions.Messaging;
 using MundialitoCorporativo.Domain.Common;
 
 namespace MundialitoCorporativo.Application.Messaging;
 
 /// <summary>
-/// Despacho en proceso de eventos de dominio (sin bus externo): resuelve los handlers del tipo de evento
-/// y deja el evento marcado en la traza actual para verlo junto al request que lo originó.
+/// Despacho en proceso de eventos de dominio (sin bus externo): envuelve el evento en una
+/// <see cref="DomainEventNotification{TEvent}"/> y lo publica con MediatR, que lo entrega a sus handlers.
+/// Además deja el evento marcado en la traza actual para verlo junto al request que lo originó.
 /// </summary>
-internal sealed class DomainEventDispatcher(IServiceProvider serviceProvider) : IDomainEventDispatcher
+internal sealed class DomainEventDispatcher(IPublisher publisher) : IDomainEventDispatcher
 {
-    private static readonly ConcurrentDictionary<Type, IDomainEventExecutor> Executors = new();
+    private static readonly ConcurrentDictionary<Type, Type> NotificationTypes = new();
 
     public Task DispatchAsync(IDomainEvent domainEvent, CancellationToken cancellationToken)
     {
@@ -22,27 +23,9 @@ internal sealed class DomainEventDispatcher(IServiceProvider serviceProvider) : 
             eventType.Name,
             tags: new ActivityTagsCollection { ["mundialito.event.id"] = domainEvent.EventId.ToString() }));
 
-        var executor = Executors.GetOrAdd(
-            eventType,
-            type => (IDomainEventExecutor)Activator.CreateInstance(typeof(DomainEventExecutor<>).MakeGenericType(type))!);
+        var notificationType = NotificationTypes.GetOrAdd(eventType, type => typeof(DomainEventNotification<>).MakeGenericType(type));
+        var notification = Activator.CreateInstance(notificationType, domainEvent)!;
 
-        return executor.Execute(domainEvent, serviceProvider, cancellationToken);
-    }
-
-    private interface IDomainEventExecutor
-    {
-        Task Execute(IDomainEvent domainEvent, IServiceProvider provider, CancellationToken cancellationToken);
-    }
-
-    private sealed class DomainEventExecutor<TEvent> : IDomainEventExecutor
-        where TEvent : IDomainEvent
-    {
-        public async Task Execute(IDomainEvent domainEvent, IServiceProvider provider, CancellationToken cancellationToken)
-        {
-            foreach (var handler in provider.GetServices<IDomainEventHandler<TEvent>>())
-            {
-                await handler.Handle((TEvent)domainEvent, cancellationToken);
-            }
-        }
+        return publisher.Publish(notification, cancellationToken);
     }
 }

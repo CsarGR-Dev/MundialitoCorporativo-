@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Testing;
@@ -35,8 +36,8 @@ public class DomainEventDispatcherTests
     [Fact]
     public void AddApplication_ShouldRegisterHandlersForMandatoryEvents()
     {
-        Assert.Single(_services.GetServices<IDomainEventHandler<EquipoCreatedDomainEvent>>());
-        Assert.Single(_services.GetServices<IDomainEventHandler<PartidoResultRegisteredDomainEvent>>());
+        Assert.Single(_services.GetServices<INotificationHandler<DomainEventNotification<EquipoCreatedDomainEvent>>>());
+        Assert.Single(_services.GetServices<INotificationHandler<DomainEventNotification<PartidoResultRegisteredDomainEvent>>>());
     }
 
     [Fact]

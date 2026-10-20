@@ -1,3 +1,4 @@
+using MediatR;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -112,9 +113,9 @@ public sealed class DatabaseSeedSqlServerTests(SqlServerDatabaseFixture fixture)
     {
         var torneoId = await ScalarAsync<Guid>("SELECT Id FROM dbo.Torneos");
         await using var scope = provider.CreateAsyncScope();
-        var dispatcher = scope.ServiceProvider.GetRequiredService<IDispatcher>();
+        var sender = scope.ServiceProvider.GetRequiredService<ISender>();
 
-        var tabla = await dispatcher.Query(new GetTablaPosicionesQuery { TorneoId = torneoId });
+        var tabla = await sender.Send(new GetTablaPosicionesQuery { TorneoId = torneoId });
         Assert.True(tabla.IsSuccess, tabla.ErrorMessage);
         var filas = tabla.Value.Data
             .Select(fila => new FilaEsperada(fila.Posicion, fila.Equipo, fila.PartidosJugados, fila.Ganados, fila.Empatados,
@@ -122,7 +123,7 @@ public sealed class DatabaseSeedSqlServerTests(SqlServerDatabaseFixture fixture)
             .ToArray();
         Assert.Equal(TablaEsperada, filas);
 
-        var goleadores = await dispatcher.Query(new GetGoleadoresQuery { TorneoId = torneoId });
+        var goleadores = await sender.Send(new GetGoleadoresQuery { TorneoId = torneoId });
         Assert.True(goleadores.IsSuccess, goleadores.ErrorMessage);
         var lider = goleadores.Value.Data[0];
         Assert.Equal(("Alejandro Morales", 3), (lider.Jugador, lider.Goles));

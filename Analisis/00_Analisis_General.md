@@ -52,7 +52,7 @@ Se permite establecer criterios propios de funcionamiento cuando la descripción
 | Logging | Serilog (sobre `ILogger`) | Logs estructurados, enrichers y sinks a consola/archivo/Seq. |
 | Tracing | `Activity` de .NET + OpenTelemetry (opcional) → Jaeger | Punto valorable del documento. |
 | Validación | FluentValidation | Validaciones de entrada sin excepciones de control de flujo. |
-| Despachador CQRS | Implementación propia ligera (`ICommandHandler`, `IQueryHandler`) | Evita dependencia de licencias comerciales y deja explícita la separación. |
+| Mediador CQRS | MediatR 12.5 (`ISender`, `IPipelineBehavior`, `INotification`) | Estándar para CQRS en .NET; la versión 12.5 es la última con licencia Apache 2.0 (desde la 13 es comercial). Solo lo usan Application y los controllers; Domain no lo conoce. |
 | Frontend | Next.js (App Router) + TypeScript | Exigido. |
 | Pruebas | xUnit + NetArchTest + NSubstitute; Testcontainers para integración | Estándar de la plataforma; sin librerías con licencia comercial. |
 | Contenedores | Docker + Docker Compose | Exigido. |

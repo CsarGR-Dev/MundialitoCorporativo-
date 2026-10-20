@@ -74,7 +74,7 @@ Domain/
 ```
 Application/
 ├── Abstractions/
-│   ├── Messaging/ (ICommand, ICommand<T>, IQuery<T>, ICommandHandler, IQueryHandler, IDispatcher)
+│   ├── Messaging/ (ICommand, ICommand<T>, IQuery<T>, ICommandHandler, IQueryHandler sobre MediatR)
 │   ├── Persistence/ (IUnitOfWork, ITorneoRepository, IEquipoRepository, IJugadorRepository, IPartidoRepository)
 │   ├── Data/ (IDbConnectionFactory)
 │   ├── Idempotency/ (IIdempotencyStore)
@@ -130,7 +130,7 @@ Api/
 ├── AssemblyReference.cs
 └── Program.cs
 ```
-- Los controladores solo: reciben el request, lo mapean a Command/Query, invocan el despachador y traducen el `Result` a HTTP.
+- Los controladores solo: reciben el request, lo mapean a Command/Query, lo envían con `ISender` de MediatR y traducen el `Result` a HTTP.
 - Sin lógica de negocio ni acceso a datos en controladores.
 - Convención de nombres completa: `17_Convencion_Nombres.md`.
 

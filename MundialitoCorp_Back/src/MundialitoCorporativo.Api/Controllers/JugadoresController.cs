@@ -1,3 +1,4 @@
+using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using MundialitoCorporativo.Api.Contracts;
 using MundialitoCorporativo.Api.Http;
@@ -13,7 +14,7 @@ namespace MundialitoCorporativo.Api.Controllers;
 /// Integrantes de equipos. El registro se hace por equipo: POST /api/equipos/{id}/jugadores.
 /// </summary>
 [Route("api/jugadores")]
-public sealed class JugadoresController(IDispatcher dispatcher) : ApiController(dispatcher)
+public sealed class JugadoresController(ISender sender) : ApiController(sender)
 {
     /// <summary>Lista paginada de todos los jugadores. Filtros: equipoId, nombre, posicionJuegoId, activo.</summary>
     [HttpGet]

@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Testing;
@@ -17,15 +18,18 @@ using NSubstitute;
 
 namespace MundialitoCorporativo.UnitTests.Application;
 
-public class DispatcherTests
+/// <summary>
+/// Pipeline de MediatR: validación antes del handler, span por request y log con nombre, resultado y duración.
+/// </summary>
+public class MediatorPipelineTests
 {
     private readonly IEquipoRepository _equipoRepository = Substitute.For<IEquipoRepository>();
     private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
     private readonly IEquipoQueries _equipoQueries = Substitute.For<IEquipoQueries>();
-    private readonly IDispatcher _dispatcher;
+    private readonly ISender _sender;
     private readonly FakeLogCollector _logs;
 
-    public DispatcherTests()
+    public MediatorPipelineTests()
     {
         var services = new ServiceCollection();
         services.AddFakeLogging();
@@ -34,14 +38,14 @@ public class DispatcherTests
         services.AddSingleton(_unitOfWork);
         services.AddSingleton(_equipoQueries);
         var provider = services.BuildServiceProvider();
-        _dispatcher = provider.CreateScope().ServiceProvider.GetRequiredService<IDispatcher>();
+        _sender = provider.CreateScope().ServiceProvider.GetRequiredService<ISender>();
         _logs = provider.GetFakeLogCollector();
     }
 
     [Fact]
     public async Task Send_WithInvalidCommand_ShouldReturnValidationErrorWithoutCallingHandler()
     {
-        var result = await _dispatcher.Send(new CreateEquipoCommand("", "T", null));
+        var result = await _sender.Send(new CreateEquipoCommand("", "T", null));
 
         Assert.True(result.IsFailure);
         var error = Assert.IsType<ValidationError>(result.Error);
@@ -55,7 +59,7 @@ public class DispatcherTests
     {
         _unitOfWork.CommitAsync(Arg.Any<CancellationToken>()).Returns(Result.Success());
 
-        var result = await _dispatcher.Send(new CreateEquipoCommand("Tecnología FC", "TEC", null));
+        var result = await _sender.Send(new CreateEquipoCommand("Tecnología FC", "TEC", null));
 
         Assert.True(result.IsSuccess);
         Assert.NotEqual(Guid.Empty, result.Value);
@@ -68,7 +72,7 @@ public class DispatcherTests
     [InlineData(1, 101)]
     public async Task Query_WithInvalidPaging_ShouldReturnValidationError(int pageNumber, int pageSize)
     {
-        var result = await _dispatcher.Query(new GetEquiposQuery { PageNumber = pageNumber, PageSize = pageSize });
+        var result = await _sender.Send(new GetEquiposQuery { PageNumber = pageNumber, PageSize = pageSize });
 
         Assert.IsType<ValidationError>(result.Error);
         await _equipoQueries.DidNotReceive().GetPagedAsync(Arg.Any<GetEquiposQuery>(), Arg.Any<CancellationToken>());
@@ -77,7 +81,7 @@ public class DispatcherTests
     [Fact]
     public async Task Query_WithSortByOutsideWhitelist_ShouldReturnValidationError()
     {
-        var result = await _dispatcher.Query(new GetEquiposQuery { SortBy = "Nombre; DROP TABLE dbo.Equipos" });
+        var result = await _sender.Send(new GetEquiposQuery { SortBy = "Nombre; DROP TABLE dbo.Equipos" });
 
         var error = Assert.IsType<ValidationError>(result.Error);
         Assert.Contains(error.Errors, field => field.Field == "sortBy");
@@ -89,7 +93,7 @@ public class DispatcherTests
         var expected = new PagedResponse<EquipoResponse>([], 2, 5, 12);
         _equipoQueries.GetPagedAsync(Arg.Any<GetEquiposQuery>(), Arg.Any<CancellationToken>()).Returns(expected);
 
-        var result = await _dispatcher.Query(new GetEquiposQuery { PageNumber = 2, PageSize = 5, SortBy = "NOMBRE", SortDirection = SortDirection.Desc });
+        var result = await _sender.Send(new GetEquiposQuery { PageNumber = 2, PageSize = 5, SortBy = "NOMBRE", SortDirection = SortDirection.Desc });
 
         Assert.True(result.IsSuccess);
         Assert.Same(expected, result.Value);
@@ -101,9 +105,9 @@ public class DispatcherTests
     {
         _unitOfWork.CommitAsync(Arg.Any<CancellationToken>()).Returns(Result.Success());
 
-        await _dispatcher.Send(new CreateEquipoCommand("Tecnología FC", "TEC", null));
+        await _sender.Send(new CreateEquipoCommand("Tecnología FC", "TEC", null));
 
-        var record = Assert.Single(_logs.GetSnapshot(), log => log.Category!.EndsWith(".Dispatcher", StringComparison.Ordinal));
+        var record = Assert.Single(_logs.GetSnapshot(), log => log.Category!.EndsWith(".ObservabilityBehavior", StringComparison.Ordinal));
         Assert.Equal(LogLevel.Information, record.Level);
         Assert.Equal(nameof(CreateEquipoCommand), record.GetStructuredStateValue("RequestName"));
         Assert.NotNull(record.GetStructuredStateValue("ElapsedMs"));
@@ -113,9 +117,9 @@ public class DispatcherTests
     [Fact]
     public async Task Send_WhenResultFails_ShouldLogWarningWithErrorCode()
     {
-        await _dispatcher.Send(new CreateEquipoCommand("", "T", null));
+        await _sender.Send(new CreateEquipoCommand("", "T", null));
 
-        var record = Assert.Single(_logs.GetSnapshot(), log => log.Category!.EndsWith(".Dispatcher", StringComparison.Ordinal));
+        var record = Assert.Single(_logs.GetSnapshot(), log => log.Category!.EndsWith(".ObservabilityBehavior", StringComparison.Ordinal));
         Assert.Equal(LogLevel.Warning, record.Level);
         Assert.Equal(ValidationError.DefaultCode, record.GetStructuredStateValue("ErrorCode"));
         Assert.Equal(nameof(ErrorType.Validation), record.GetStructuredStateValue("ErrorType"));
@@ -135,8 +139,8 @@ public class DispatcherTests
         _equipoQueries.GetPagedAsync(Arg.Any<GetEquiposQuery>(), Arg.Any<CancellationToken>()).Returns(new PagedResponse<EquipoResponse>([], 1, 10, 0));
 
         using var request = new Activity("GET /api/equipos").SetIdFormat(ActivityIdFormat.W3C).Start();
-        await _dispatcher.Query(new GetEquiposQuery());
-        await _dispatcher.Send(new CreateEquipoCommand("", "T", null));
+        await _sender.Send(new GetEquiposQuery());
+        await _sender.Send(new CreateEquipoCommand("", "T", null));
 
         var spans = stopped.Where(span => span.TraceId == request.TraceId).ToList();
         var query = Assert.Single(spans, span => span.DisplayName == $"Query {nameof(GetEquiposQuery)}");

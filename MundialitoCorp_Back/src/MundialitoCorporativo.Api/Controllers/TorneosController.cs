@@ -1,3 +1,4 @@
+using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using MundialitoCorporativo.Api.Contracts;
 using MundialitoCorporativo.Api.Http;
@@ -15,7 +16,7 @@ namespace MundialitoCorporativo.Api.Controllers;
 /// Torneos: datos, equipos participantes, calendario, tabla de posiciones y goleadores.
 /// </summary>
 [Route("api/torneos")]
-public sealed class TorneosController(IDispatcher dispatcher) : ApiController(dispatcher)
+public sealed class TorneosController(ISender sender) : ApiController(sender)
 {
     /// <summary>Lista paginada. Filtros: nombre, estado.</summary>
     [HttpGet]
@@ -35,7 +36,7 @@ public sealed class TorneosController(IDispatcher dispatcher) : ApiController(di
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict, MediaTypes.ProblemJson)]
     public async Task<IActionResult> Create(TorneoRequest request, CancellationToken cancellationToken) =>
         await CreatedAsync(
-            await Dispatcher.Send(request.ToCreateCommand(), cancellationToken),
+            await Sender.Send(request.ToCreateCommand(), cancellationToken),
             id => new GetTorneoByIdQuery(id),
             nameof(GetById),
             null,
@@ -80,7 +81,7 @@ public sealed class TorneosController(IDispatcher dispatcher) : ApiController(di
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict, MediaTypes.ProblemJson)]
     public async Task<IActionResult> RegisterEquipo(Guid id, RegisterEquipoInTorneoRequest request, CancellationToken cancellationToken)
     {
-        var result = await Dispatcher.Send(request.ToCommand(id), cancellationToken);
+        var result = await Sender.Send(request.ToCommand(id), cancellationToken);
 
         return result.IsSuccess
             ? CreatedAtAction(nameof(GetEquipos), new { id }, new InscripcionEquipoResponse(id, request.EquipoId))

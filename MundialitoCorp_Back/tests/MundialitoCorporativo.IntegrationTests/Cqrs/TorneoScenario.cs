@@ -1,3 +1,4 @@
+using MediatR;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using MundialitoCorporativo.Application;
@@ -36,19 +37,19 @@ internal sealed class CqrsHost : IDisposable
     public async Task<Result> Send(ICommand command)
     {
         using var scope = _provider.CreateScope();
-        return await scope.ServiceProvider.GetRequiredService<IDispatcher>().Send(command);
+        return await scope.ServiceProvider.GetRequiredService<ISender>().Send(command);
     }
 
     public async Task<Result<T>> Send<T>(ICommand<T> command)
     {
         using var scope = _provider.CreateScope();
-        return await scope.ServiceProvider.GetRequiredService<IDispatcher>().Send(command);
+        return await scope.ServiceProvider.GetRequiredService<ISender>().Send(command);
     }
 
     public async Task<Result<T>> Query<T>(IQuery<T> query)
     {
         using var scope = _provider.CreateScope();
-        return await scope.ServiceProvider.GetRequiredService<IDispatcher>().Query(query);
+        return await scope.ServiceProvider.GetRequiredService<ISender>().Send(query);
     }
 
     public void Dispose() => _provider.Dispose();

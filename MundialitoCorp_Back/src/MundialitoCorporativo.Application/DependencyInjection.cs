@@ -1,40 +1,30 @@
 using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
 using MundialitoCorporativo.Application.Abstractions.Messaging;
+using MundialitoCorporativo.Application.Behaviors;
 using MundialitoCorporativo.Application.Messaging;
 
 namespace MundialitoCorporativo.Application;
 
 public static class DependencyInjection
 {
-    private static readonly Type[] HandlerInterfaces =
-    [
-        typeof(ICommandHandler<>),
-        typeof(ICommandHandler<,>),
-        typeof(IQueryHandler<,>),
-        typeof(IDomainEventHandler<>)
-    ];
-
     /// <summary>
-    /// Registra los servicios de la capa Application: despachador CQRS, handlers de Commands, Queries
-    /// y eventos de dominio, y validadores.
+    /// Registra los servicios de la capa Application: MediatR con los handlers de Commands, Queries y
+    /// eventos de dominio del ensamblado, el pipeline (observabilidad y validación) y los validadores.
     /// </summary>
     public static IServiceCollection AddApplication(this IServiceCollection services)
     {
-        services.AddScoped<IDispatcher, Dispatcher>();
-        services.AddScoped<IDomainEventDispatcher, DomainEventDispatcher>();
-
-        var handlerRegistrations = AssemblyReference.Assembly.GetTypes()
-            .Where(type => type is { IsAbstract: false, IsInterface: false })
-            .SelectMany(type => type.GetInterfaces()
-                .Where(contract => contract.IsGenericType && HandlerInterfaces.Contains(contract.GetGenericTypeDefinition()))
-                .Select(contract => (Contract: contract, Implementation: type)));
-
-        foreach (var (contract, implementation) in handlerRegistrations)
+        services.AddMediatR(configuration =>
         {
-            services.AddScoped(contract, implementation);
-        }
+            configuration.RegisterServicesFromAssembly(AssemblyReference.Assembly);
+            configuration.Lifetime = ServiceLifetime.Scoped;
 
+            // Orden del pipeline: el primero envuelve al segundo. El span y el log cubren también la validación.
+            configuration.AddOpenBehavior(typeof(ObservabilityBehavior<,>));
+            configuration.AddOpenBehavior(typeof(ValidationBehavior<,>));
+        });
+
+        services.AddScoped<IDomainEventDispatcher, DomainEventDispatcher>();
         services.AddValidatorsFromAssembly(AssemblyReference.Assembly, ServiceLifetime.Scoped, includeInternalTypes: true);
 
         return services;

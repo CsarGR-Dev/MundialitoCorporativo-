@@ -113,7 +113,7 @@ Para 400 con múltiples campos se usa `ValidationProblemDetails` con el dicciona
 - Métodos de dominio devuelven `Result` / `Result<T>`.
 - Handlers devuelven `Result` / `Result<T>`.
 - Controladores solo traducen el `Result` a respuesta HTTP con los métodos de `ApiController` (`QueryAsync`, `CreatedAsync`, `SendThenQueryAsync`, `SendNoContentAsync`, `ErrorResult`).
-- Los errores de formato que detecta MVC antes del despachador (JSON mal formado, texto en un campo numérico) responden con el mismo formato: 400, `ValidationProblemDetails` y `errorCode = Validation.Failed`.
+- Los errores de formato que detecta MVC antes de MediatR (JSON mal formado, texto en un campo numérico) responden con el mismo formato: 400, `ValidationProblemDetails` y `errorCode = Validation.Failed`.
 - El middleware global de excepciones solo atrapa errores **inesperados** (500) y los registra con nivel Error.
 
 ## Pruebas requeridas (ver ítem 15)

@@ -162,7 +162,7 @@ Las reglas del Mundialito (por ejemplo, que un goleador debe pertenecer a su equ
 
 ```mermaid
 flowchart LR
-    C["Controllers"] --> D["Dispatcher<br/>valida · traza · log"]
+    C["Controllers"] --> D["MediatR · ISender<br/>pipeline: traza · log · validación"]
 
     subgraph W["<b>19 Commands</b> · cambian datos · EF Core"]
         W1["Torneos: Create · Update · Patch · Delete<br/>RegisterEquipoInTorneo · WithdrawEquipoFromTorneo"]
@@ -179,10 +179,10 @@ flowchart LR
     end
 
     D -->|"Send(command)"| W
-    D -->|"Query(query)"| R
+    D -->|"Send(query)"| R
 ```
 
-Todo lo que cambia el torneo (inscribir un equipo, programar un partido, registrar un resultado) es un Command; todo lo que se consulta (tabla, goleadores, calendario) es una Query. El `Dispatcher` valida la entrada y envía cada uno a su handler.
+Todo lo que cambia el torneo (inscribir un equipo, programar un partido, registrar un resultado) es un Command; todo lo que se consulta (tabla, goleadores, calendario) es una Query. MediatR envía cada uno a su handler a través del pipeline: `ObservabilityBehavior` abre el span y registra la duración, y `ValidationBehavior` valida la entrada antes del handler.
 
 ---
 

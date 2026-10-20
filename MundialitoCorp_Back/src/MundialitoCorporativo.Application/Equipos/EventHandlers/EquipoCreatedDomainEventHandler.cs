@@ -2,7 +2,7 @@ using Microsoft.Extensions.Logging;
 using MundialitoCorporativo.Application.Abstractions.Messaging;
 using MundialitoCorporativo.Domain.Equipos.Events;
 
-namespace MundialitoCorporativo.Application.Equipos.Events;
+namespace MundialitoCorporativo.Application.Equipos.EventHandlers;
 
 /// <summary>
 /// Evento obligatorio del requerimiento (ítem 7): deja constancia en el log de la creación del equipo.

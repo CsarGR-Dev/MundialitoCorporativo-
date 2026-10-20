@@ -1,3 +1,4 @@
+using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using MundialitoCorporativo.Api.Contracts;
 using MundialitoCorporativo.Api.Http;
@@ -14,7 +15,7 @@ namespace MundialitoCorporativo.Api.Controllers;
 /// Calendario de partidos y registro de resultados.
 /// </summary>
 [Route("api/partidos")]
-public sealed class PartidosController(IDispatcher dispatcher) : ApiController(dispatcher)
+public sealed class PartidosController(ISender sender) : ApiController(sender)
 {
     /// <summary>Lista paginada. Filtros: torneoId, fechaDesde, fechaHasta, equipoId (local o visitante), estado.</summary>
     [HttpGet]
@@ -36,7 +37,7 @@ public sealed class PartidosController(IDispatcher dispatcher) : ApiController(d
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict, MediaTypes.ProblemJson)]
     public async Task<IActionResult> Schedule(SchedulePartidoRequest request, CancellationToken cancellationToken) =>
         await CreatedAsync(
-            await Dispatcher.Send(request.ToCommand(), cancellationToken),
+            await Sender.Send(request.ToCommand(), cancellationToken),
             id => new GetPartidoByIdQuery(id),
             nameof(GetById),
             null,
@@ -77,7 +78,7 @@ public sealed class PartidosController(IDispatcher dispatcher) : ApiController(d
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict, MediaTypes.ProblemJson)]
     public async Task<IActionResult> RegisterResult(Guid id, RegisterPartidoResultRequest request, CancellationToken cancellationToken)
     {
-        var result = await Dispatcher.Send(request.ToCommand(id), cancellationToken);
+        var result = await Sender.Send(request.ToCommand(id), cancellationToken);
 
         return await CreatedAsync(
             result.IsSuccess ? Result.Success(id) : Result.Failure<Guid>(result.Error),

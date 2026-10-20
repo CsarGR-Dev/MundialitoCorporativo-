@@ -15,7 +15,7 @@ MundialitoCorporativo/
 ├── MundialitoCorp_Back/       Backend .NET 10 (solución MundialitoCorporativo.slnx y Directory.Build.props)
 │   ├── src/
 │   │   ├── MundialitoCorporativo.Domain          Modelos, reglas de negocio, Result Pattern, eventos de dominio
-│   │   ├── MundialitoCorporativo.Application     CQRS: despachador, Commands, Queries, validaciones y contratos
+│   │   ├── MundialitoCorporativo.Application     CQRS con MediatR: Commands, Queries, pipeline, validaciones y contratos
 │   │   ├── MundialitoCorporativo.Infrastructure  EF Core, repositorios, Unit of Work, consultas Dapper y scripts SQL del esquema
 │   │   └── MundialitoCorporativo.Api             Controladores REST, idempotencia, observabilidad, errores HTTP y composition root
 │   └── tests/
@@ -193,7 +193,7 @@ Las 23 reglas de negocio con su respuesta HTTP están en [Analisis/00_Analisis_G
 | # | Ítem | Estado |
 |---|---|---|
 | 2 | Clean Architecture | Implementado: 4 capas y pruebas de arquitectura |
-| 3 | CQRS | Implementado: despachador, Commands (EF Core + Unit of Work) y Queries (Dapper) |
+| 3 | CQRS | Implementado con MediatR: Commands (EF Core + Unit of Work), Queries (Dapper) y pipeline de validación y observabilidad |
 | 4 | Unit of Work | Implementado y probado |
 | 5 | Result Pattern | Implementado: Result en Domain y mapeo a 200/201/204/400/404/409 con ProblemDetails |
 | 6 | REST + idempotencia | Implementado: controladores REST e `Idempotency-Key` persistida en `RegistrosIdempotencia` |
@@ -205,6 +205,6 @@ Las 23 reglas de negocio con su respuesta HTTP están en [Analisis/00_Analisis_G
 | 12 | Dockerización | Implementado: Dockerfile de API y frontend (multi-stage, usuario no root) y `docker-compose.yml` con DB, API, frontend y Jaeger; `docker-compose up` levanta todo con los datos iniciales. Verificado desde cero con la colección de Postman en verde |
 | 13 | Diagrama de arquitectura | Implementado: vista general, modelo de datos, ciclo de un torneo y un diagrama por cada uno de los 11 elementos exigidos, en Mermaid con su imagen |
 | 14 | Colección de Postman | Implementado: 64 requests en 9 carpetas con pruebas; endpoints con el mismo listado que Scalar y casos de idempotencia, filtros, paginación, errores y trazabilidad; entorno local; validada con Newman |
-| 15 | Pruebas | Todo el mínimo cubierto (tabla, puntos, diferencia de gol, Result Pattern, idempotencia, Unit of Work) más integración por HTTP, observabilidad y seed: 229 pruebas |
+| 15 | Pruebas | Todo el mínimo cubierto (tabla, puntos, diferencia de gol, Result Pattern, idempotencia, Unit of Work) más integración por HTTP, observabilidad y seed: 230 pruebas |
 
 El análisis de cada ítem está en [Analisis/](Analisis/).

@@ -92,16 +92,16 @@ PartidoTests|Delete_PlayedPartido_ShouldFail|Partido.Delete()|Impedir eliminar u
 PartidoTests|Update_PlayedPartido_ShouldFail|Partido.Update()|Impedir reprogramar un partido que ya se jugó.
 
 # ---------------------------------------------------------------------------
-# DispatcherTests, CommandHandlerTests y CqrsRegistrationTests — Application
+# MediatorPipelineTests, CommandHandlerTests y CqrsRegistrationTests — Application
 # ---------------------------------------------------------------------------
-DispatcherTests|Send_WithInvalidCommand_ShouldReturnValidationErrorWithoutCallingHandler|Dispatcher.Send()|Verificar que un Command inválido devuelve ValidationError y nunca llega a su handler.
-DispatcherTests|Send_WithValidCommand_ShouldExecuteHandler|Dispatcher.Send()|Comprobar que un Command válido se entrega a su handler y devuelve su resultado.
-DispatcherTests|Query_WithInvalidPaging_ShouldReturnValidationError|Dispatcher.Query()|Rechazar pageNumber menor a 1 o pageSize fuera del rango de 1 a 100.
-DispatcherTests|Query_WithSortByOutsideWhitelist_ShouldReturnValidationError|Dispatcher.Query()|Rechazar un sortBy que no está en la lista blanca, primera barrera contra inyección SQL en el ORDER BY.
-DispatcherTests|Query_WithValidPaging_ShouldReturnPagedResponseFromReadSide|Dispatcher.Query()|Verificar que una Query válida devuelve el formato paginado desde el lado de lectura.
-DispatcherTests|Send_WithValidCommand_ShouldLogInformationWithNameAndDurationOnly|Dispatcher (logs)|Comprobar que el log de un Command exitoso tiene su nombre y duración y no incluye su contenido.
-DispatcherTests|Send_WhenResultFails_ShouldLogWarningWithErrorCode|Dispatcher (logs)|Comprobar que un resultado fallido se registra como Warning con su tipo y código de error.
-DispatcherTests|SendAndQuery_ShouldOpenOneSpanPerRequestInTheCurrentTrace|Dispatcher (trazas)|Verificar que cada Command o Query abre un span dentro de la traza actual.
+MediatorPipelineTests|Send_WithInvalidCommand_ShouldReturnValidationErrorWithoutCallingHandler|ValidationBehavior (MediatR)|Verificar que un Command inválido devuelve ValidationError y nunca llega a su handler.
+MediatorPipelineTests|Send_WithValidCommand_ShouldExecuteHandler|ISender.Send() (MediatR)|Comprobar que un Command válido pasa el pipeline y MediatR lo entrega a su handler y devuelve su resultado.
+MediatorPipelineTests|Query_WithInvalidPaging_ShouldReturnValidationError|ValidationBehavior (MediatR)|Rechazar pageNumber menor a 1 o pageSize fuera del rango de 1 a 100.
+MediatorPipelineTests|Query_WithSortByOutsideWhitelist_ShouldReturnValidationError|ValidationBehavior (MediatR)|Rechazar un sortBy que no está en la lista blanca, primera barrera contra inyección SQL en el ORDER BY.
+MediatorPipelineTests|Query_WithValidPaging_ShouldReturnPagedResponseFromReadSide|ISender.Send() (MediatR)|Verificar que una Query válida devuelve el formato paginado desde el lado de lectura.
+MediatorPipelineTests|Send_WithValidCommand_ShouldLogInformationWithNameAndDurationOnly|ObservabilityBehavior (logs)|Comprobar que el log de un Command exitoso tiene su nombre y duración y no incluye su contenido.
+MediatorPipelineTests|Send_WhenResultFails_ShouldLogWarningWithErrorCode|ObservabilityBehavior (logs)|Comprobar que un resultado fallido se registra como Warning con su tipo y código de error.
+MediatorPipelineTests|SendAndQuery_ShouldOpenOneSpanPerRequestInTheCurrentTrace|ObservabilityBehavior (trazas)|Verificar que cada Command o Query abre un span dentro de la traza actual.
 CommandHandlerTests|CreateEquipo_WithDuplicateNombre_ShouldReturnConflictWithoutCommit|CreateEquipoCommandHandler|Rechazar un nombre de equipo duplicado con conflicto y sin confirmar nada.
 CommandHandlerTests|CreateEquipo_WithValidData_ShouldAddAndCommitOnce|CreateEquipoCommandHandler|Verificar que crear un equipo agrega la entidad y confirma con el Unit of Work una sola vez.
 CommandHandlerTests|CreateEquipo_WhenCommitFails_ShouldReturnCommitError|CreateEquipoCommandHandler|Comprobar que si el commit falla, el handler devuelve ese error en lugar de un éxito.
@@ -110,17 +110,18 @@ CommandHandlerTests|DeleteEquipo_AlreadyDeleted_ShouldSucceedWithoutCommit|Delet
 CommandHandlerTests|DeleteEquipo_WithPartidos_ShouldReturnConflict|DeleteEquipoCommandHandler|Impedir eliminar un equipo que tiene partidos asociados.
 CommandHandlerTests|SchedulePartido_WhenEquipoAlreadyPlaysAtThatTime_ShouldReturnConflict|SchedulePartidoCommandHandler|Impedir programar un partido si uno de los equipos ya juega a esa misma hora.
 CommandHandlerTests|RegisterPartidoResult_ForUnknownPartido_ShouldReturnNotFound|RegisterPartidoResultCommandHandler|Verificar que registrar el resultado de un partido inexistente devuelve NotFound.
-CqrsRegistrationTests|EveryCommandAndQuery_ShouldHaveExactlyOneHandler|AddApplication() (registro CQRS)|Garantizar que cada uno de los Commands y Queries tiene exactamente un handler registrado.
+CqrsRegistrationTests|EveryCommandAndQuery_ShouldHaveExactlyOneHandler|Handlers de Commands y Queries|Garantizar que cada uno de los Commands y Queries tiene exactamente un handler.
+CqrsRegistrationTests|AddApplication_ShouldRegisterEveryHandlerInMediatR|AddApplication() (registro en MediatR)|Verificar que los 31 Commands y Queries tienen su handler registrado en MediatR, para que ISender.Send() los encuentre.
 CqrsRegistrationTests|EveryAllowedSortField_ShouldMapToASqlColumn|Queries paginadas y SqlSort|Comprobar que cada campo de la lista blanca de sortBy tiene su columna SQL configurada.
 CqrsRegistrationTests|PagedQueries_ShouldUseFirstAllowedFieldAsDefaultSort|PagedQuery.EffectiveSortBy|Verificar que, sin sortBy, se ordena por el primer campo permitido de cada Query.
 
 # ---------------------------------------------------------------------------
 # DomainEventDispatcherTests — Application/Messaging y handlers de eventos
 # ---------------------------------------------------------------------------
-DomainEventDispatcherTests|AddApplication_ShouldRegisterHandlersForMandatoryEvents|AddApplication() (eventos)|Verificar que los dos eventos obligatorios, equipo creado y resultado registrado, tienen su handler registrado.
+DomainEventDispatcherTests|AddApplication_ShouldRegisterHandlersForMandatoryEvents|AddApplication() (notificaciones de MediatR)|Verificar que los dos eventos obligatorios, equipo creado y resultado registrado, tienen su handler registrado como notificación de MediatR.
 DomainEventDispatcherTests|EquipoCreated_ShouldBeLoggedWithStructuredProperties|EquipoCreatedDomainEventHandler|Comprobar que el evento de equipo creado se registra en el log con propiedades estructuradas.
 DomainEventDispatcherTests|PartidoResultRegistered_ShouldBeLoggedWithScore|PartidoResultRegisteredDomainEventHandler|Comprobar que el evento de resultado registrado se registra en el log con el marcador.
-DomainEventDispatcherTests|EventWithoutHandlers_ShouldCompleteWithoutErrors|DomainEventDispatcher|Verificar que despachar un evento sin handlers termina sin errores.
+DomainEventDispatcherTests|EventWithoutHandlers_ShouldCompleteWithoutErrors|DomainEventDispatcher (IPublisher)|Verificar que publicar un evento sin handlers termina sin errores.
 DomainEventDispatcherTests|Dispatch_ShouldMarkTheEventInTheCurrentTrace|DomainEventDispatcher|Comprobar que el evento queda marcado en la traza actual con su identificador.
 
 # ---------------------------------------------------------------------------

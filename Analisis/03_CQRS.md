@@ -18,25 +18,19 @@
 ### Contratos de mensajería (Application/Abstractions/Messaging)
 
 ```csharp
-public interface ICommand : IBaseCommand { }
-public interface ICommand<TResponse> : IBaseCommand { }
-public interface IQuery<TResponse> { }
+public interface ICommand : IRequest<Result>;
+public interface ICommand<TResponse> : IRequest<Result<TResponse>>;
+public interface IQuery<TResponse> : IRequest<Result<TResponse>>;
 
-public interface ICommandHandler<in TCommand> where TCommand : ICommand
-{
-    Task<Result> Handle(TCommand command, CancellationToken ct);
-}
-public interface ICommandHandler<in TCommand, TResponse> where TCommand : ICommand<TResponse>
-{
-    Task<Result<TResponse>> Handle(TCommand command, CancellationToken ct);
-}
-public interface IQueryHandler<in TQuery, TResponse> where TQuery : IQuery<TResponse>
-{
-    Task<Result<TResponse>> Handle(TQuery query, CancellationToken ct);
-}
+public interface ICommandHandler<in TCommand> : IRequestHandler<TCommand, Result>
+    where TCommand : ICommand;
+public interface ICommandHandler<in TCommand, TResponse> : IRequestHandler<TCommand, Result<TResponse>>
+    where TCommand : ICommand<TResponse>;
+public interface IQueryHandler<in TQuery, TResponse> : IRequestHandler<TQuery, Result<TResponse>>
+    where TQuery : IQuery<TResponse>;
 ```
 
-Se implementa un `Dispatcher` propio que resuelve el handler desde el contenedor de DI y aplica decoradores (validación y logging). Esto deja explícita la separación sin depender de librerías con licencia comercial.
+Los contratos propios (`ICommand`, `IQuery`, sus handlers) se apoyan en **MediatR 12.5**, la última versión con licencia Apache 2.0. Los nombres del dominio de CQRS quedan explícitos en el código y MediatR se encarga de resolver el handler. La validación y la observabilidad son *pipeline behaviors*.
 
 ### Lado de escritura (Commands)
 
@@ -136,9 +130,11 @@ OFFSET @Skip ROWS FETCH NEXT @Take ROWS ONLY;
 
 ## Implementación real
 
-- **Despachador propio** (`Application/Messaging/Dispatcher.cs`): resuelve el handler desde el contenedor y ejecuta antes los validadores de FluentValidation; si fallan devuelve `ValidationError` (400) sin invocar el handler.
+- **MediatR 12.5** (`Application/DependencyInjection.cs`): registra los handlers del ensamblado y el pipeline. Los controllers envían cada Command o Query con `ISender.Send`.
+- **Pipeline** (`Application/Behaviors/`): `ObservabilityBehavior` (el más externo) abre un span por Command o Query y registra el resultado y la duración; `ValidationBehavior` ejecuta los validadores de FluentValidation y, si fallan, devuelve `ValidationError` (400) sin invocar el handler.
+- **Eventos de dominio**: `DomainEventDispatcher` envuelve cada evento en una `DomainEventNotification<T>` y la publica con `IPublisher`. Domain no conoce MediatR; los handlers están en `Application/*/EventHandlers/`.
 - **Commands** (`Application/*/Commands/`): un archivo por caso de uso (Command + validador + handler). Usan repositorios EF Core y terminan con `IUnitOfWork.CommitAsync()`.
 - **Queries** (`Application/*/Queries/`): los handlers dependen de interfaces de lectura (`Application/Abstractions/Queries/`) que Infrastructure implementa con Dapper (`Infrastructure/Queries/`). Así Application no depende de Dapper y la prueba de arquitectura lo sigue verificando.
 - **SQL**: `SqlFilter` arma el WHERE solo con los filtros enviados (parametrizados, `LIKE` con comodines escapados); `SqlSort` traduce `sortBy` a columnas de una lista blanca con desempate estable; `PagedSql` ejecuta conteo y página (`OFFSET/FETCH`) en un solo viaje con `QueryMultipleAsync`.
 - **Fechas**: las consultas devuelven `TODATETIMEOFFSET(columna, 0)` para exponerlas en UTC sin ambigüedad.
-- **Pruebas**: `UnitTests/Application/` (despachador, handlers, registro de handlers y sortBy) e `IntegrationTests/Cqrs/CqrsSqlServerTests.cs` (pila completa contra SQL Server).
+- **Pruebas**: `UnitTests/Application/` (pipeline de MediatR, handlers, registro de handlers en MediatR y sortBy) e `IntegrationTests/Cqrs/CqrsSqlServerTests.cs` (pila completa contra SQL Server).

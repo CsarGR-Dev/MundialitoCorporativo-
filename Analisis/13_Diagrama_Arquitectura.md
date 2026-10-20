@@ -38,7 +38,7 @@ flowchart TB
         RX[Result → HTTP]
     end
     subgraph Application
-        D[Dispatcher]
+        D[MediatR]
         CMD[Command Handlers]
         QRY[Query Handlers]
         VAL[Validators]

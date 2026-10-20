@@ -157,7 +157,7 @@ Datos que **no** se registran: cuerpos de petición, query string, headers, cont
 - TraceId: el de W3C Trace Context que crea ASP.NET Core. Si el cliente envía `traceparent`, la API continúa esa traza.
 - Los dos valores se agregan como propiedades a todos los logs del request y aparecen en todo ProblemDetails (`traceId`, `correlationId`).
 - `RequestTimingMiddleware`: `HTTP {RequestMethod} {RequestPath} respondió {StatusCode} en {ElapsedMs} ms`, con nivel según el resultado y Warning si supera `Observability:SlowRequestThreshold`.
-- El despachador CQRS abre un span por Command o Query (`ActivitySource "MundialitoCorporativo.Application"`) con el nombre, el tipo y, si falla, el `ErrorCode`.
+- `ObservabilityBehavior`, en el pipeline de MediatR, abre un span por Command o Query (`ActivitySource "MundialitoCorporativo.Application"`) con el nombre, el tipo y, si falla, el `ErrorCode`.
 - OpenTelemetry (valorable): instrumentación de ASP.NET Core y SqlClient (cubre EF Core y Dapper), spans propios de Application y exportación OTLP hacia Jaeger cuando hay endpoint configurado.
 
 ### Eventos de dominio
@@ -178,7 +178,7 @@ Los handlers se ejecutan con `CancellationToken.None`: si el cliente cancela la 
 - Unitarias:
   - `CorrelationIdMiddlewareTests`: se conserva un valor válido, se genera uno nuevo si falta o no es válido, y TraceId y CorrelationId llegan a las capas internas y a la respuesta.
   - `RequestTimingMiddlewareTests`: el nivel según el código y el request lento; no registra la query string.
-  - `DispatcherTests`: el log del Command sin su contenido, el Warning con `ErrorCode` y un span por Command o Query.
+  - `MediatorPipelineTests`: el log del Command sin su contenido, el Warning con `ErrorCode` y un span por Command o Query.
   - `DomainEventDispatcherTests`: los handlers de los eventos obligatorios y sus propiedades estructuradas.
   - `UnitOfWorkTests`: el despacho después del commit, `FechaProcesado`, un handler que falla y el TraceId y CorrelationId guardados.
 - Integración (`ObservabilitySqlServerTests`, por HTTP contra SQL Server):

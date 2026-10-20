@@ -1,3 +1,4 @@
+using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using MundialitoCorporativo.Application.Abstractions.Messaging;
 using MundialitoCorporativo.Application.Common.Paging;
@@ -10,7 +11,7 @@ namespace MundialitoCorporativo.Api.Controllers;
 /// Catálogo de posiciones de juego (solo lectura) para registrar integrantes.
 /// </summary>
 [Route("api/posiciones-juego")]
-public sealed class PosicionesJuegoController(IDispatcher dispatcher) : ApiController(dispatcher)
+public sealed class PosicionesJuegoController(ISender sender) : ApiController(sender)
 {
     /// <summary>Lista paginada. Filtro: activo.</summary>
     [HttpGet]

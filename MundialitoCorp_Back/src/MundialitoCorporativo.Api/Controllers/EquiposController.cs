@@ -1,3 +1,4 @@
+using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using MundialitoCorporativo.Api.Contracts;
 using MundialitoCorporativo.Api.Http;
@@ -15,7 +16,7 @@ namespace MundialitoCorporativo.Api.Controllers;
 /// Equipos participantes: CRUD completo, filtros, paginación y ordenamiento dinámico; integrantes por equipo.
 /// </summary>
 [Route("api/equipos")]
-public sealed class EquiposController(IDispatcher dispatcher) : ApiController(dispatcher)
+public sealed class EquiposController(ISender sender) : ApiController(sender)
 {
     /// <summary>Lista paginada. Filtros: nombre (o abreviatura), departamento.</summary>
     [HttpGet]
@@ -35,7 +36,7 @@ public sealed class EquiposController(IDispatcher dispatcher) : ApiController(di
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict, MediaTypes.ProblemJson)]
     public async Task<IActionResult> Create(EquipoRequest request, CancellationToken cancellationToken) =>
         await CreatedAsync(
-            await Dispatcher.Send(request.ToCreateCommand(), cancellationToken),
+            await Sender.Send(request.ToCreateCommand(), cancellationToken),
             id => new GetEquipoByIdQuery(id),
             nameof(GetById),
             null,
@@ -80,7 +81,7 @@ public sealed class EquiposController(IDispatcher dispatcher) : ApiController(di
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict, MediaTypes.ProblemJson)]
     public async Task<IActionResult> RegisterJugador(Guid id, RegisterJugadorRequest request, CancellationToken cancellationToken) =>
         await CreatedAsync(
-            await Dispatcher.Send(request.ToCommand(id), cancellationToken),
+            await Sender.Send(request.ToCommand(id), cancellationToken),
             jugadorId => new GetJugadorByIdQuery(jugadorId),
             nameof(JugadoresController.GetById),
             "Jugadores",

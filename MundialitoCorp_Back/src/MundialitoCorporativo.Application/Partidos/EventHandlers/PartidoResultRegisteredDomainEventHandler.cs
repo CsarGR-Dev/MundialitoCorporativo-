@@ -2,7 +2,7 @@ using Microsoft.Extensions.Logging;
 using MundialitoCorporativo.Application.Abstractions.Messaging;
 using MundialitoCorporativo.Domain.Partidos.Events;
 
-namespace MundialitoCorporativo.Application.Partidos.Events;
+namespace MundialitoCorporativo.Application.Partidos.EventHandlers;
 
 /// <summary>
 /// Evento obligatorio del requerimiento (ítem 7): deja constancia en el log del resultado registrado.

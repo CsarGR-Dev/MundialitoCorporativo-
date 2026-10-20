@@ -1,3 +1,6 @@
+using MediatR;
+using Microsoft.Extensions.DependencyInjection;
+using MundialitoCorporativo.Application;
 using MundialitoCorporativo.Application.Abstractions.Messaging;
 using MundialitoCorporativo.Application.Common.Paging;
 using MundialitoCorporativo.Application.Equipos.Queries;
@@ -40,6 +43,26 @@ public class CqrsRegistrationTests
             .ToList();
 
         Assert.All(requests, request => Assert.Equal(1, handledRequests.Count(handled => handled == request)));
+    }
+
+    [Fact]
+    public void AddApplication_ShouldRegisterEveryHandlerInMediatR()
+    {
+        var services = new ServiceCollection().AddApplication();
+
+        var requests = MundialitoCorporativo.Application.AssemblyReference.Assembly.GetTypes()
+            .Where(type => type is { IsAbstract: false, IsInterface: false } && type.GetInterfaces().Any(IsRequestInterface))
+            .ToList();
+
+        Assert.Equal(31, requests.Count);
+        Assert.All(requests, request =>
+        {
+            var response = request.GetInterfaces()
+                .Single(contract => contract.IsGenericType && contract.GetGenericTypeDefinition() == typeof(IRequest<>))
+                .GetGenericArguments()[0];
+            var handler = typeof(IRequestHandler<,>).MakeGenericType(request, response);
+            Assert.Contains(services, descriptor => descriptor.ServiceType == handler);
+        });
     }
 
     [Theory]

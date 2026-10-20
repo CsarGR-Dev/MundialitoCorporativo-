@@ -1,3 +1,4 @@
+using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using MundialitoCorporativo.Api.Http;
 using MundialitoCorporativo.Application.Abstractions.Messaging;
@@ -6,19 +7,19 @@ using MundialitoCorporativo.Domain.Common;
 namespace MundialitoCorporativo.Api.Controllers;
 
 /// <summary>
-/// Base de los controladores: solo orquestan. Envían Commands o Queries al despachador y traducen el Result a HTTP.
+/// Base de los controladores: solo orquestan. Envían Commands o Queries con MediatR (ISender) y traducen el Result a HTTP.
 /// </summary>
 [ApiController]
 [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest, MediaTypes.ProblemJson)]
 [ProducesResponseType<ProblemDetails>(StatusCodes.Status500InternalServerError, MediaTypes.ProblemJson)]
-public abstract class ApiController(IDispatcher dispatcher) : ControllerBase
+public abstract class ApiController(ISender sender) : ControllerBase
 {
-    protected IDispatcher Dispatcher { get; } = dispatcher;
+    protected ISender Sender { get; } = sender;
 
     /// <summary>GET: 200 con el resultado, o el error correspondiente (400/404).</summary>
     protected async Task<IActionResult> QueryAsync<TResponse>(IQuery<TResponse> query, CancellationToken cancellationToken)
     {
-        var result = await Dispatcher.Query(query, cancellationToken);
+        var result = await Sender.Send(query, cancellationToken);
 
         return result.IsSuccess ? Ok(result.Value) : ErrorResult(result.Error);
     }
@@ -38,7 +39,7 @@ public abstract class ApiController(IDispatcher dispatcher) : ControllerBase
             return ErrorResult(creation.Error);
         }
 
-        var resource = await Dispatcher.Query(resourceQuery(creation.Value), cancellationToken);
+        var resource = await Sender.Send(resourceQuery(creation.Value), cancellationToken);
 
         return resource.IsSuccess
             ? CreatedAtAction(actionName, controllerName, new { id = creation.Value }, resource.Value)
@@ -51,7 +52,7 @@ public abstract class ApiController(IDispatcher dispatcher) : ControllerBase
         IQuery<TResponse> resourceQuery,
         CancellationToken cancellationToken)
     {
-        var result = await Dispatcher.Send(command, cancellationToken);
+        var result = await Sender.Send(command, cancellationToken);
 
         return result.IsSuccess ? await QueryAsync(resourceQuery, cancellationToken) : ErrorResult(result.Error);
     }
@@ -59,7 +60,7 @@ public abstract class ApiController(IDispatcher dispatcher) : ControllerBase
     /// <summary>DELETE: 204 sin cuerpo, también cuando el recurso ya estaba eliminado (idempotente).</summary>
     protected async Task<IActionResult> SendNoContentAsync(ICommand command, CancellationToken cancellationToken)
     {
-        var result = await Dispatcher.Send(command, cancellationToken);
+        var result = await Sender.Send(command, cancellationToken);
 
         return result.IsSuccess ? NoContent() : ErrorResult(result.Error);
     }
