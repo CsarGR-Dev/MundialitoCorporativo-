@@ -136,7 +136,7 @@ curl -X POST http://localhost:5000/api/equipos \
 
 Detalle de verbos, códigos e idempotencia: [Analisis/06_REST_Idempotencia.md](Analisis/06_REST_Idempotencia.md).
 
-**Postman:** importar `Postman/MundialitoCorporativo.postman_collection.json` y el entorno `Postman/Mundialito.Local.postman_environment.json`, y ejecutar la colección en orden. Tiene 64 requests con pruebas y cubre idempotencia, filtros, paginación, errores y trazabilidad. Desde la terminal: `npx newman run Postman/MundialitoCorporativo.postman_collection.json -e Postman/Mundialito.Local.postman_environment.json`. Detalle en [Postman/README.md](Postman/README.md).
+**Postman:** importar `Postman/MundialitoCorporativo.postman_collection.json` y el entorno `Postman/Mundialito.Local.postman_environment.json`, y ejecutar la colección en orden. Los endpoints están agrupados igual que en Scalar (mismos grupos, nombres y orden) y le siguen los casos de idempotencia, filtros, paginación, errores y trazabilidad: 64 requests con pruebas. Desde la terminal: `npx newman run Postman/MundialitoCorporativo.postman_collection.json -e Postman/Mundialito.Local.postman_environment.json`. Detalle en [Postman/README.md](Postman/README.md).
 
 ## Frontend
 
@@ -202,7 +202,7 @@ Las 23 reglas de negocio con su respuesta HTTP están en [Analisis/00_Analisis_G
 | 11 | Frontend Next.js | Implementado: alta, edición y baja de torneos, equipos, integrantes y partidos; inscripción de equipos; registro de resultado; tabla de posiciones y goleadores; filtros, paginación y manejo de errores; POST con Idempotency-Key. Verificado con un navegador contra la API |
 | 12 | Dockerización | Implementado: Dockerfile de API y frontend (multi-stage, usuario no root) y `docker-compose.yml` con DB, API, frontend y Jaeger; `docker-compose up` levanta todo con los datos iniciales. Verificado desde cero con la colección de Postman en verde |
 | 13 | Diagrama de arquitectura | Implementado: vista general, modelo de datos, ciclo de un torneo y un diagrama por cada uno de los 11 elementos exigidos, en Mermaid con su imagen |
-| 14 | Colección de Postman | Implementado: 64 requests en 10 carpetas con pruebas (idempotencia, filtros, paginación, errores, trazabilidad) y entorno local; validada con Newman |
+| 14 | Colección de Postman | Implementado: 64 requests en 9 carpetas con pruebas; endpoints con el mismo listado que Scalar y casos de idempotencia, filtros, paginación, errores y trazabilidad; entorno local; validada con Newman |
 | 15 | Pruebas | Todo el mínimo cubierto (tabla, puntos, diferencia de gol, Result Pattern, idempotencia, Unit of Work) más integración por HTTP, observabilidad y seed: 229 pruebas |
 
 El análisis de cada ítem está en [Analisis/](Analisis/).

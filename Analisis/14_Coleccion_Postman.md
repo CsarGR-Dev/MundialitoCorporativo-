@@ -105,15 +105,19 @@ newman run postman/MundialitoCorporativo.postman_collection.json -e postman/Mund
 
 ## Criterios de aceptación
 
-- [ ] Colección y environment exportados (formato v2.1) en el repositorio.
-- [ ] Todos los endpoints cubiertos y agrupados por recurso.
-- [ ] Carpetas específicas de idempotencia, paginación/filtros y errores.
-- [ ] Ninguna URL fija: todo usa `{{baseUrl}}` y variables.
+- [x] Colección y environment exportados (formato v2.1) en el repositorio.
+- [x] Todos los endpoints cubiertos y agrupados por recurso.
+- [x] Carpetas específicas de idempotencia, paginación/filtros y errores.
+- [x] Ninguna URL fija: todo usa `{{baseUrl}}` y variables.
 - [x] La colección corre completa en verde contra el entorno Docker recién levantado.
 
 ## Implementación real
 
-Archivos en `Postman/`: la colección (64 requests en 10 carpetas), el entorno `Mundialito Local` y un `README.md` con el uso.
+Archivos en `Postman/`: la colección (64 requests en 9 carpetas), el entorno `Mundialito Local` y un `README.md` con el uso.
+
+### Estructura
+
+Las cinco primeras carpetas reproducen el listado de Scalar (`/scalar`): **Equipos, Jugadores, Partidos, PosicionesJuego y Torneos**, en orden alfabético, con un request por endpoint (33 en total), nombrado con su ruta y en el mismo orden. Los parámetros de ruta son variables de Postman (`:id`) y los filtros y la paginación aparecen en *Params*, desactivados los que no se usan. Después vienen los casos: **Idempotencia, Filtros y paginación, Errores y Trazabilidad**.
 
 ### Ajustes respecto al diseño inicial
 
@@ -121,8 +125,9 @@ Archivos en `Postman/`: la colección (64 requests en 10 carpetas), el entorno `
 |---|---|---|
 | Carpeta `postman/` | `Postman/` | Mismo estilo que `Analisis/`. |
 | Entorno `Mundialito.Docker` | No se agrega: el entorno `Mundialito Local` sirve para los dos | En Docker la API se publica en el mismo puerto (5000). La colección corre en verde contra la API en Docker. |
-| `00 Health` con `GET /health` | `00 Datos del seed` | La API no tiene endpoint de health todavía. La primera carpeta verifica el seed: torneo, tabla esperada, goleador líder y partidos programados. |
-| Carpetas por recurso con Torneos al final | `01 Torneos` primero | El flujo crea primero el torneo y luego inscribe equipos, programa partidos y registra el resultado. Así la colección se ejecuta completa en orden. |
+| `00 Health` con `GET /health` | No se incluye | La API no tiene endpoint de health. Los datos del seed se verifican en las consultas del torneo (carpeta Torneos). |
+| Carpetas numeradas con nombres propios | Carpetas con los mismos grupos, nombres y orden que Scalar | La colección y la documentación de la API muestran el mismo listado. |
+| Flujo en orden (crear antes de usar) | Pre-request que prepara los datos cuando el orden de Scalar no lo permite | `POST /api/partidos` crea su torneo con dos equipos inscritos; cada `DELETE` crea antes el registro que elimina. |
 | Ids sueltos (`equipoId`, `matchId`) | Variables de colección con nombres del dominio (`equipoLocalId`, `partidoId`, …) | Se capturan en las pruebas de cada request. |
 | Datos fijos | Sufijo único por ejecución, generado en el primer request | La colección se puede ejecutar varias veces sin chocar con datos anteriores y sin cambiar la tabla del seed. |
 
@@ -130,15 +135,15 @@ Archivos en `Postman/`: la colección (64 requests en 10 carpetas), el entorno `
 
 - Cada request valida su código HTTP y lo relevante del cuerpo: formato paginado, `errorCode`, orden, conteos y el header `Idempotent-Replayed`.
 - A nivel de colección, toda respuesta debe traer `X-Correlation-Id` y `X-Trace-Id`, y todo error debe ser `application/problem+json` con `traceId`.
-- Validación con Newman contra la API y la base del seed: 64 requests, 215 aserciones, sin fallos, en dos ejecuciones seguidas.
+- Validación con Newman contra la API con la base recién creada por el seed: 64 requests, 219 aserciones, sin fallos, en dos ejecuciones seguidas.
 
 ### Criterios del requerimiento
 
 | Pide | Dónde |
 |---|---|
-| Endpoints organizados | Carpetas 00 a 04 y 09 (todos los recursos y verbos) |
-| Idempotencia | Carpeta 05 (más el PUT repetido en 01 y el DELETE repetido en 09) |
-| Filtros | Carpetas 06 y 01 a 03 (nombre, estado, equipo, posición, fecha) |
-| Paginación | Carpeta 06 (páginas, tamaño, orden, fuera de rango) y la validación del formato en cada GET de colección |
-| Errores | Carpeta 07 (400, 404, 409) y 08 (traceId y correlationId en el error) |
+| Endpoints organizados | Carpetas Equipos, Jugadores, Partidos, PosicionesJuego y Torneos: todos los recursos y verbos, igual que Scalar |
+| Idempotencia | Carpeta Idempotencia (POST con clave, PUT repetido y DELETE repetido) |
+| Filtros | Carpeta Filtros y paginación, y los GET de colección de cada recurso (nombre, estado, equipo, posición, fecha) |
+| Paginación | Carpeta Filtros y paginación (páginas, tamaño, orden, fuera de rango) y la validación del formato en cada GET de colección |
+| Errores | Carpeta Errores (400, 404, 409) y Trazabilidad (traceId y correlationId en el error) |
 | Variables de entorno | `baseUrl` en el entorno; ids y claves como variables de colección |

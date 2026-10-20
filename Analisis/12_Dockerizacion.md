@@ -106,6 +106,6 @@ docker-compose down -v           # detiene y borra la base (el próximo up vuelv
 - [x] Al iniciar en un volumen nuevo, la API crea la base y siembra: 1 torneo, 4 equipos, 20 jugadores, 6 partidos (3 con resultado).
 - [x] El frontend muestra datos del seed al abrir http://localhost:3000.
 - [x] Scalar en http://localhost:5000/scalar y trazas de la API en Jaeger.
-- [x] La colección de Postman corre en verde contra la API en Docker (64 requests, 215 aserciones).
+- [x] La colección de Postman corre en verde contra la API en Docker.
 - [x] Imágenes multi-stage y ejecutadas con usuario no root.
 - [x] Sin secretos reales versionados: `.env` está en `.gitignore`; la contraseña por defecto es solo para desarrollo local.

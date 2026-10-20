@@ -484,3 +484,13 @@ $RECYCLE.BIN/
 # Material de trabajo local (no se versiona): scripts SQL para SSMS y documentación personal
 /Db/
 /Documentacion/
+
+# Archivos de espacio de trabajo que crea la aplicación de Postman al abrir la carpeta
+/.postman/
+/Postman/collections/
+/Postman/documents/
+/Postman/environments/
+/Postman/flows/
+/Postman/globals/
+/Postman/mocks/
+/Postman/specs/

@@ -2,36 +2,62 @@
   "info": {
     "_postman_id": "aabca205-97dd-5939-a11b-4d4298aaeb3a",
     "name": "Mundialito Corporativo",
-    "description": "API del Mundialito de Fútbol Corporativo (ítem 14).\n\nUso: importar la colección y el entorno `Mundialito Local`, iniciar la API (con la base vacía carga el seed) y ejecutar la colección completa en orden (Run collection o `newman run`). Cada ejecución crea su propio torneo y equipos con un sufijo único, así que se puede repetir sin cambiar la tabla del seed.\n\nCarpetas: datos del seed, CRUD por recurso, idempotencia, filtros y paginación, errores, trazabilidad y DELETE idempotente. Cada request tiene pruebas; a nivel de colección se verifica que toda respuesta traiga X-Correlation-Id y X-Trace-Id, y que todo error sea ProblemDetails con traceId.",
+    "description": "API del Mundialito de Fútbol Corporativo.\n\nLas carpetas **Equipos, Jugadores, Partidos, PosicionesJuego y Torneos** siguen el mismo listado que Scalar (`/scalar`): un request por endpoint, con el mismo nombre y orden. Después vienen los casos: **Idempotencia, Filtros y paginación, Errores y Trazabilidad**.\n\nUso: importar la colección y el entorno `Mundialito Local`, iniciar la API (con la base vacía carga el seed) y ejecutar la colección completa en orden (Run collection o `newman run`). Cada ejecución crea sus propios torneos, equipos y jugadores con un sufijo único, así que se puede repetir sin cambiar la tabla del seed.\n\nCada request tiene pruebas; a nivel de colección se verifica que toda respuesta traiga X-Correlation-Id y X-Trace-Id, y que todo error sea ProblemDetails con traceId.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
     {
-      "name": "00 Datos del seed",
-      "description": "Datos que la API carga sola al iniciar con la base vacía (ítem 9). Guarda el torneo del seed en `seedTorneoId`.",
+      "name": "Equipos",
+      "description": "Endpoints de `/api/equipos`, en el mismo orden que Scalar. El primer request genera los valores únicos de la ejecución.",
       "item": [
         {
-          "name": "Torneos (buscar el del seed)",
+          "name": "/api/equipos",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/torneos?nombre=Mundialito Corporativo 2026",
+              "raw": "{{baseUrl}}/api/equipos?sortBy=nombre&sortDirection=asc",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "api",
-                "torneos"
+                "equipos"
               ],
               "query": [
                 {
                   "key": "nombre",
-                  "value": "Mundialito Corporativo 2026"
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "departamento",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "pageNumber",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "pageSize",
+                  "value": "10",
+                  "disabled": true
+                },
+                {
+                  "key": "sortBy",
+                  "value": "nombre"
+                },
+                {
+                  "key": "sortDirection",
+                  "value": "asc"
                 }
               ]
-            }
+            },
+            "description": "Lista paginada. Filtros: nombre (o abreviatura), departamento."
           },
+          "response": [],
           "event": [
             {
               "listen": "prerequest",
@@ -46,6 +72,7 @@
                   "pm.collectionVariables.set(\"abreviaturaLocal\", \"L\" + letras());",
                   "pm.collectionVariables.set(\"abreviaturaVisitante\", \"V\" + letras());",
                   "pm.collectionVariables.set(\"abreviaturaIdem\", \"I\" + letras());",
+                  "pm.collectionVariables.set(\"abreviaturaEliminar\", \"D\" + letras());",
                   "pm.collectionVariables.set(\"claveIdempotencia\", \"postman-\" + sufijo);"
                 ]
               }
@@ -64,52 +91,9 @@
                   "    pm.expect(body.totalPages).to.eql(Math.ceil(body.totalRecords / body.pageSize));",
                   "});",
                   "",
-                  "const torneo = pm.response.json().data[0];",
-                  "pm.test(\"Existe el torneo del seed\", () => pm.expect(torneo, \"Ejecute la API con la base vacía para cargar el seed\").to.exist);",
-                  "if (torneo) pm.collectionVariables.set(\"seedTorneoId\", torneo.id);"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "Tabla de posiciones del seed",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/torneos/{{seedTorneoId}}/tabla-posiciones",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "torneos",
-                "{{seedTorneoId}}",
-                "tabla-posiciones"
-              ]
-            },
-            "description": "Tabla calculada en SQL con Dapper: puntos (3/1/0), diferencia de gol, goles a favor."
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));",
-                  "",
-                  "pm.test(\"Formato paginado { data, pageNumber, pageSize, totalRecords, totalPages }\", () => {",
-                  "    const body = pm.response.json();",
-                  "    pm.expect(body).to.have.all.keys(\"data\", \"pageNumber\", \"pageSize\", \"totalRecords\", \"totalPages\");",
-                  "    pm.expect(body.data).to.be.an(\"array\");",
-                  "    pm.expect(body.totalPages).to.eql(Math.ceil(body.totalRecords / body.pageSize));",
-                  "});",
-                  "",
-                  "const tabla = pm.response.json().data;",
-                  "pm.test(\"4 equipos ordenados por puntos, diferencia de gol y goles a favor\", () => {",
-                  "    pm.expect(tabla.map(f => f.equipo)).to.eql([\"Operaciones City\", \"Tecnología FC\", \"Recursos Humanos Athletic\", \"Finanzas United\"]);",
-                  "    pm.expect(tabla.map(f => f.puntos)).to.eql([4, 3, 1, 0]);",
+                  "pm.test(\"Ordenados por nombre ascendente\", () => {",
+                  "    const nombres = pm.response.json().data.map(e => e.nombre);",
+                  "    pm.expect(nombres).to.eql([...nombres].sort((a, b) => a.localeCompare(b, \"es\")));",
                   "});"
                 ]
               }
@@ -117,384 +101,7 @@
           ]
         },
         {
-          "name": "Goleadores del seed",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/torneos/{{seedTorneoId}}/goleadores",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "torneos",
-                "{{seedTorneoId}}",
-                "goleadores"
-              ]
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));",
-                  "",
-                  "pm.test(\"Formato paginado { data, pageNumber, pageSize, totalRecords, totalPages }\", () => {",
-                  "    const body = pm.response.json();",
-                  "    pm.expect(body).to.have.all.keys(\"data\", \"pageNumber\", \"pageSize\", \"totalRecords\", \"totalPages\");",
-                  "    pm.expect(body.data).to.be.an(\"array\");",
-                  "    pm.expect(body.totalPages).to.eql(Math.ceil(body.totalRecords / body.pageSize));",
-                  "});",
-                  "",
-                  "pm.test(\"Líder: Alejandro Morales con 3 goles\", () => {",
-                  "    const lider = pm.response.json().data[0];",
-                  "    pm.expect(lider.jugador).to.eql(\"Alejandro Morales\");",
-                  "    pm.expect(lider.goles).to.eql(3);",
-                  "});"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "Partidos programados del seed",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/torneos/{{seedTorneoId}}/partidos?estado=Programado&sortBy=fechaProgramada",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "torneos",
-                "{{seedTorneoId}}",
-                "partidos"
-              ],
-              "query": [
-                {
-                  "key": "estado",
-                  "value": "Programado"
-                },
-                {
-                  "key": "sortBy",
-                  "value": "fechaProgramada"
-                }
-              ]
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));",
-                  "",
-                  "pm.test(\"Formato paginado { data, pageNumber, pageSize, totalRecords, totalPages }\", () => {",
-                  "    const body = pm.response.json();",
-                  "    pm.expect(body).to.have.all.keys(\"data\", \"pageNumber\", \"pageSize\", \"totalRecords\", \"totalPages\");",
-                  "    pm.expect(body.data).to.be.an(\"array\");",
-                  "    pm.expect(body.totalPages).to.eql(Math.ceil(body.totalRecords / body.pageSize));",
-                  "});",
-                  "",
-                  "pm.test(\"Solo partidos programados\", () => pm.response.json().data.forEach(p => pm.expect(p.estado).to.eql(\"Programado\")));",
-                  "const programado = pm.response.json().data[0];",
-                  "if (programado) pm.collectionVariables.set(\"seedPartidoProgramadoId\", programado.id);"
-                ]
-              }
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "name": "01 Torneos",
-      "description": "CRUD de torneos y estado. Crea un torneo propio de la ejecución para no alterar la tabla del seed.",
-      "item": [
-        {
-          "name": "Crear torneo",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Idempotency-Key",
-                "value": "{{idempotencyKey}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/torneos",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "torneos"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"nombre\": \"Torneo Postman {{sufijo}}\",\n  \"descripcion\": \"Creado desde la colección\",\n  \"fechaInicio\": \"2026-10-01\",\n  \"fechaFin\": \"2026-12-31\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Responde 201\", () => pm.response.to.have.status(201));",
-                  "",
-                  "pm.test(\"Location apunta al recurso creado\", () => pm.expect(pm.response.headers.get(\"Location\")).to.include(\"/api/torneos/\"));",
-                  "const torneo = pm.response.json();",
-                  "pm.test(\"Estado inicial Planificado\", () => pm.expect(torneo.estado).to.eql(\"Planificado\"));",
-                  "pm.collectionVariables.set(\"torneoId\", torneo.id);"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "Obtener torneo",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/torneos/{{torneoId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "torneos",
-                "{{torneoId}}"
-              ]
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "Listar torneos (filtro y orden)",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/torneos?estado=Planificado&sortBy=nombre&sortDirection=asc&pageNumber=1&pageSize=10",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "torneos"
-              ],
-              "query": [
-                {
-                  "key": "estado",
-                  "value": "Planificado"
-                },
-                {
-                  "key": "sortBy",
-                  "value": "nombre"
-                },
-                {
-                  "key": "sortDirection",
-                  "value": "asc"
-                },
-                {
-                  "key": "pageNumber",
-                  "value": "1"
-                },
-                {
-                  "key": "pageSize",
-                  "value": "10"
-                }
-              ]
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));",
-                  "",
-                  "pm.test(\"Formato paginado { data, pageNumber, pageSize, totalRecords, totalPages }\", () => {",
-                  "    const body = pm.response.json();",
-                  "    pm.expect(body).to.have.all.keys(\"data\", \"pageNumber\", \"pageSize\", \"totalRecords\", \"totalPages\");",
-                  "    pm.expect(body.data).to.be.an(\"array\");",
-                  "    pm.expect(body.totalPages).to.eql(Math.ceil(body.totalRecords / body.pageSize));",
-                  "});"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "Reemplazar torneo (PUT)",
-          "request": {
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/torneos/{{torneoId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "torneos",
-                "{{torneoId}}"
-              ]
-            },
-            "description": "Reemplazo completo e idempotente: repetirlo deja el mismo estado.",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"nombre\": \"Torneo Postman {{sufijo}}\",\n  \"descripcion\": \"Descripción reemplazada\",\n  \"fechaInicio\": \"2026-10-01\",\n  \"fechaFin\": \"2026-12-31\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));",
-                  "pm.test(\"Descripción reemplazada\", () => pm.expect(pm.response.json().descripcion).to.eql(\"Descripción reemplazada\"));"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "Reemplazar torneo otra vez (PUT idempotente)",
-          "request": {
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/torneos/{{torneoId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "torneos",
-                "{{torneoId}}"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"nombre\": \"Torneo Postman {{sufijo}}\",\n  \"descripcion\": \"Descripción reemplazada\",\n  \"fechaInicio\": \"2026-10-01\",\n  \"fechaFin\": \"2026-12-31\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));",
-                  "pm.test(\"Mismo estado que el primer PUT\", () => pm.expect(pm.response.json().descripcion).to.eql(\"Descripción reemplazada\"));"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "Iniciar torneo (PATCH estado)",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/merge-patch+json"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/torneos/{{torneoId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "torneos",
-                "{{torneoId}}"
-              ]
-            },
-            "description": "JSON Merge Patch: solo cambia los campos enviados.",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"estado\": \"EnCurso\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));",
-                  "pm.test(\"Estado EnCurso\", () => pm.expect(pm.response.json().estado).to.eql(\"EnCurso\"));"
-                ]
-              }
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "name": "02 Equipos",
-      "description": "CRUD completo de equipos e inscripción en el torneo de la ejecución.",
-      "item": [
-        {
-          "name": "Crear equipo local",
+          "name": "/api/equipos",
           "request": {
             "method": "POST",
             "header": [
@@ -525,8 +132,10 @@
                   "language": "json"
                 }
               }
-            }
+            },
+            "description": "Crea un equipo. Requiere el encabezado Idempotency-Key."
           },
+          "response": [],
           "event": [
             {
               "listen": "test",
@@ -534,6 +143,8 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"Responde 201\", () => pm.response.to.have.status(201));",
+                  "",
+                  "pm.test(\"Location apunta al recurso creado\", () => pm.expect(pm.response.headers.get(\"Location\")).to.include(\"/api/equipos/\"));",
                   "pm.collectionVariables.set(\"equipoLocalId\", pm.response.json().id);"
                 ]
               }
@@ -541,111 +152,29 @@
           ]
         },
         {
-          "name": "Crear equipo visitante",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Idempotency-Key",
-                "value": "{{idempotencyKey}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/equipos",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "equipos"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"nombre\": \"Visitante {{sufijo}}\",\n  \"abreviatura\": \"{{abreviaturaVisitante}}\",\n  \"departamento\": \"Contabilidad\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Responde 201\", () => pm.response.to.have.status(201));",
-                  "pm.collectionVariables.set(\"equipoVisitanteId\", pm.response.json().id);"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "Obtener equipo",
+          "name": "/api/equipos/{id}",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/equipos/{{equipoLocalId}}",
+              "raw": "{{baseUrl}}/api/equipos/:id",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "api",
                 "equipos",
-                "{{equipoLocalId}}"
-              ]
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "Listar equipos (filtro por nombre)",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/equipos?nombre={{sufijo}}&sortBy=nombre&sortDirection=asc",
-              "host": [
-                "{{baseUrl}}"
+                ":id"
               ],
-              "path": [
-                "api",
-                "equipos"
-              ],
-              "query": [
+              "variable": [
                 {
-                  "key": "nombre",
-                  "value": "{{sufijo}}"
-                },
-                {
-                  "key": "sortBy",
-                  "value": "nombre"
-                },
-                {
-                  "key": "sortDirection",
-                  "value": "asc"
+                  "key": "id",
+                  "value": "{{equipoLocalId}}"
                 }
               ]
             }
           },
+          "response": [],
           "event": [
             {
               "listen": "test",
@@ -653,21 +182,14 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));",
-                  "",
-                  "pm.test(\"Formato paginado { data, pageNumber, pageSize, totalRecords, totalPages }\", () => {",
-                  "    const body = pm.response.json();",
-                  "    pm.expect(body).to.have.all.keys(\"data\", \"pageNumber\", \"pageSize\", \"totalRecords\", \"totalPages\");",
-                  "    pm.expect(body.data).to.be.an(\"array\");",
-                  "    pm.expect(body.totalPages).to.eql(Math.ceil(body.totalRecords / body.pageSize));",
-                  "});",
-                  "pm.test(\"Encuentra los 2 equipos de la ejecución\", () => pm.expect(pm.response.json().totalRecords).to.eql(2));"
+                  "pm.test(\"Es el equipo creado\", () => pm.expect(pm.response.json().nombre).to.eql(\"Local \" + pm.collectionVariables.get(\"sufijo\")));"
                 ]
               }
             }
           ]
         },
         {
-          "name": "Reemplazar equipo (PUT)",
+          "name": "/api/equipos/{id}",
           "request": {
             "method": "PUT",
             "header": [
@@ -677,14 +199,20 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/equipos/{{equipoLocalId}}",
+              "raw": "{{baseUrl}}/api/equipos/:id",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "api",
                 "equipos",
-                "{{equipoLocalId}}"
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{equipoLocalId}}"
+                }
               ]
             },
             "body": {
@@ -695,8 +223,10 @@
                   "language": "json"
                 }
               }
-            }
+            },
+            "description": "Reemplazo completo (idempotente)."
           },
+          "response": [],
           "event": [
             {
               "listen": "test",
@@ -711,7 +241,7 @@
           ]
         },
         {
-          "name": "Modificar equipo (PATCH)",
+          "name": "/api/equipos/{id}",
           "request": {
             "method": "PATCH",
             "header": [
@@ -721,14 +251,20 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/equipos/{{equipoVisitanteId}}",
+              "raw": "{{baseUrl}}/api/equipos/:id",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "api",
                 "equipos",
-                "{{equipoVisitanteId}}"
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{equipoLocalId}}"
+                }
               ]
             },
             "body": {
@@ -739,8 +275,10 @@
                   "language": "json"
                 }
               }
-            }
+            },
+            "description": "Modificación parcial: solo los campos enviados."
           },
+          "response": [],
           "event": [
             {
               "listen": "test",
@@ -752,7 +290,7 @@
                   "const equipo = pm.response.json();",
                   "pm.test(\"Cambia solo el departamento\", () => {",
                   "    pm.expect(equipo.departamento).to.eql(\"Finanzas\");",
-                  "    pm.expect(equipo.nombre).to.eql(\"Visitante \" + pm.collectionVariables.get(\"sufijo\"));",
+                  "    pm.expect(equipo.nombre).to.eql(\"Local \" + pm.collectionVariables.get(\"sufijo\"));",
                   "});"
                 ]
               }
@@ -760,119 +298,130 @@
           ]
         },
         {
-          "name": "Inscribir equipo local en el torneo",
+          "name": "/api/equipos/{id}",
           "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Idempotency-Key",
-                "value": "{{idempotencyKey}}"
-              }
-            ],
+            "method": "DELETE",
+            "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/torneos/{{torneoId}}/equipos",
+              "raw": "{{baseUrl}}/api/equipos/:id",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "api",
-                "torneos",
-                "{{torneoId}}",
-                "equipos"
+                "equipos",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{equipoEliminarId}}"
+                }
               ]
             },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"equipoId\": \"{{equipoLocalId}}\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
+            "description": "Eliminación lógica idempotente: 204 también si ya estaba eliminado; 404 si nunca existió.\n\nEl pre-request crea un equipo solo para eliminarlo."
           },
+          "response": [],
           "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const api = (method, path, body) => new Promise((resolve, reject) => pm.sendRequest({",
+                  "    url: pm.variables.get(\"baseUrl\") + path,",
+                  "    method,",
+                  "    header: {",
+                  "        \"Content-Type\": method === \"PATCH\" ? \"application/merge-patch+json\" : \"application/json\",",
+                  "        \"Idempotency-Key\": pm.variables.replaceIn(\"{{$guid}}\")",
+                  "    },",
+                  "    body: body ? { mode: \"raw\", raw: JSON.stringify(body) } : undefined",
+                  "}, (err, res) => {",
+                  "    if (err) return reject(err);",
+                  "    if (res.code >= 400) return reject(new Error(method + \" \" + path + \" → \" + res.code + \" \" + res.text()));",
+                  "    resolve(res.code === 204 ? null : res.json());",
+                  "}));",
+                  "const v = (name) => pm.collectionVariables.get(name);",
+                  "",
+                  "api(\"POST\", \"/api/equipos\", { nombre: \"Eliminar \" + v(\"sufijo\"), abreviatura: v(\"abreviaturaEliminar\"), departamento: null })",
+                  "    .then(e => pm.collectionVariables.set(\"equipoEliminarId\", e.id));"
+                ]
+              }
+            },
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"Responde 201\", () => pm.response.to.have.status(201));"
+                  "pm.test(\"Responde 204\", () => pm.response.to.have.status(204));"
                 ]
               }
             }
           ]
         },
         {
-          "name": "Inscribir equipo visitante en el torneo",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Idempotency-Key",
-                "value": "{{idempotencyKey}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/torneos/{{torneoId}}/equipos",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "torneos",
-                "{{torneoId}}",
-                "equipos"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"equipoId\": \"{{equipoVisitanteId}}\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Responde 201\", () => pm.response.to.have.status(201));"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "Equipos inscritos en el torneo",
+          "name": "/api/equipos/{id}/jugadores",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/torneos/{{torneoId}}/equipos",
+              "raw": "{{baseUrl}}/api/equipos/:id/jugadores",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "api",
-                "torneos",
-                "{{torneoId}}",
-                "equipos"
+                "equipos",
+                ":id",
+                "jugadores"
+              ],
+              "query": [
+                {
+                  "key": "nombre",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "posicionJuegoId",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "activo",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "pageNumber",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "pageSize",
+                  "value": "10",
+                  "disabled": true
+                },
+                {
+                  "key": "sortBy",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "sortDirection",
+                  "value": "asc",
+                  "disabled": true
+                }
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{equipoLocalId}}"
+                }
               ]
-            }
+            },
+            "description": "Integrantes del equipo, paginados. Filtros: nombre, posicionJuegoId, activo."
           },
+          "response": [],
           "event": [
             {
               "listen": "test",
@@ -886,21 +435,14 @@
                   "    pm.expect(body).to.have.all.keys(\"data\", \"pageNumber\", \"pageSize\", \"totalRecords\", \"totalPages\");",
                   "    pm.expect(body.data).to.be.an(\"array\");",
                   "    pm.expect(body.totalPages).to.eql(Math.ceil(body.totalRecords / body.pageSize));",
-                  "});",
-                  "pm.test(\"2 inscritos\", () => pm.expect(pm.response.json().totalRecords).to.eql(2));"
+                  "});"
                 ]
               }
             }
           ]
-        }
-      ]
-    },
-    {
-      "name": "03 Jugadores",
-      "description": "Registro de integrantes por equipo, consulta con filtros y modificación.",
-      "item": [
+        },
         {
-          "name": "Registrar jugador en el equipo local",
+          "name": "/api/equipos/{id}/jugadores",
           "request": {
             "method": "POST",
             "header": [
@@ -914,18 +456,23 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/equipos/{{equipoLocalId}}/jugadores",
+              "raw": "{{baseUrl}}/api/equipos/:id/jugadores",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "api",
                 "equipos",
-                "{{equipoLocalId}}",
+                ":id",
                 "jugadores"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{equipoLocalId}}"
+                }
               ]
             },
-            "description": "Posiciones: 1 Portero, 2 Defensa, 3 Mediocampista, 4 Delantero (GET /api/posiciones-juego).",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"posicionJuegoId\": 4,\n  \"nombres\": \"Ana\",\n  \"apellidos\": \"López\",\n  \"numeroCamiseta\": 9\n}",
@@ -934,8 +481,10 @@
                   "language": "json"
                 }
               }
-            }
+            },
+            "description": "Registra un integrante en el equipo. Requiere el encabezado Idempotency-Key."
           },
+          "response": [],
           "event": [
             {
               "listen": "test",
@@ -948,95 +497,15 @@
               }
             }
           ]
-        },
+        }
+      ]
+    },
+    {
+      "name": "Jugadores",
+      "description": "Endpoints de `/api/jugadores`, en el mismo orden que Scalar.",
+      "item": [
         {
-          "name": "Registrar jugador en el equipo visitante",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Idempotency-Key",
-                "value": "{{idempotencyKey}}"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/equipos/{{equipoVisitanteId}}/jugadores",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "equipos",
-                "{{equipoVisitanteId}}",
-                "jugadores"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"posicionJuegoId\": 4,\n  \"nombres\": \"Luis\",\n  \"apellidos\": \"Pérez\",\n  \"numeroCamiseta\": 10\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Responde 201\", () => pm.response.to.have.status(201));",
-                  "pm.collectionVariables.set(\"jugadorVisitanteId\", pm.response.json().id);"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "Integrantes del equipo local",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/equipos/{{equipoLocalId}}/jugadores",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "equipos",
-                "{{equipoLocalId}}",
-                "jugadores"
-              ]
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));",
-                  "",
-                  "pm.test(\"Formato paginado { data, pageNumber, pageSize, totalRecords, totalPages }\", () => {",
-                  "    const body = pm.response.json();",
-                  "    pm.expect(body).to.have.all.keys(\"data\", \"pageNumber\", \"pageSize\", \"totalRecords\", \"totalPages\");",
-                  "    pm.expect(body.data).to.be.an(\"array\");",
-                  "    pm.expect(body.totalPages).to.eql(Math.ceil(body.totalRecords / body.pageSize));",
-                  "});"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "Listar jugadores (filtros)",
+          "name": "/api/jugadores",
           "request": {
             "method": "GET",
             "header": [],
@@ -1055,6 +524,11 @@
                   "value": "{{equipoLocalId}}"
                 },
                 {
+                  "key": "nombre",
+                  "value": "",
+                  "disabled": true
+                },
+                {
                   "key": "posicionJuegoId",
                   "value": "4"
                 },
@@ -1063,12 +537,29 @@
                   "value": "true"
                 },
                 {
+                  "key": "pageNumber",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "pageSize",
+                  "value": "10",
+                  "disabled": true
+                },
+                {
                   "key": "sortBy",
                   "value": "numeroCamiseta"
+                },
+                {
+                  "key": "sortDirection",
+                  "value": "asc",
+                  "disabled": true
                 }
               ]
-            }
+            },
+            "description": "Lista paginada de todos los jugadores. Filtros: equipoId, nombre, posicionJuegoId, activo."
           },
+          "response": [],
           "event": [
             {
               "listen": "test",
@@ -1090,36 +581,44 @@
           ]
         },
         {
-          "name": "Obtener jugador",
+          "name": "/api/jugadores/{id}",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/jugadores/{{jugadorLocalId}}",
+              "raw": "{{baseUrl}}/api/jugadores/:id",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "api",
                 "jugadores",
-                "{{jugadorLocalId}}"
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{jugadorLocalId}}"
+                }
               ]
             }
           },
+          "response": [],
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));"
+                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Pertenece al equipo local\", () => pm.expect(pm.response.json().equipoId).to.eql(pm.collectionVariables.get(\"equipoLocalId\")));"
                 ]
               }
             }
           ]
         },
         {
-          "name": "Reemplazar jugador (PUT)",
+          "name": "/api/jugadores/{id}",
           "request": {
             "method": "PUT",
             "header": [
@@ -1129,14 +628,20 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/jugadores/{{jugadorLocalId}}",
+              "raw": "{{baseUrl}}/api/jugadores/:id",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "api",
                 "jugadores",
-                "{{jugadorLocalId}}"
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{jugadorLocalId}}"
+                }
               ]
             },
             "body": {
@@ -1147,22 +652,25 @@
                   "language": "json"
                 }
               }
-            }
+            },
+            "description": "Reemplazo completo (idempotente). El equipo del jugador no cambia."
           },
+          "response": [],
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));"
+                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Nombres reemplazados\", () => pm.expect(pm.response.json().nombres).to.eql(\"Ana María\"));"
                 ]
               }
             }
           ]
         },
         {
-          "name": "Modificar jugador (PATCH)",
+          "name": "/api/jugadores/{id}",
           "request": {
             "method": "PATCH",
             "header": [
@@ -1172,14 +680,20 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/jugadores/{{jugadorVisitanteId}}",
+              "raw": "{{baseUrl}}/api/jugadores/:id",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "api",
                 "jugadores",
-                "{{jugadorVisitanteId}}"
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{jugadorLocalId}}"
+                }
               ]
             },
             "body": {
@@ -1190,8 +704,10 @@
                   "language": "json"
                 }
               }
-            }
+            },
+            "description": "Modificación parcial: solo los campos enviados."
           },
+          "response": [],
           "event": [
             {
               "listen": "test",
@@ -1199,28 +715,145 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));",
-                  "pm.test(\"Camiseta 11\", () => pm.expect(pm.response.json().numeroCamiseta).to.eql(11));"
+                  "pm.test(\"Camiseta 11 y el resto igual\", () => {",
+                  "    pm.expect(pm.response.json().numeroCamiseta).to.eql(11);",
+                  "    pm.expect(pm.response.json().nombres).to.eql(\"Ana María\");",
+                  "});"
                 ]
               }
             }
           ]
         },
         {
-          "name": "Posiciones de juego",
+          "name": "/api/jugadores/{id}",
           "request": {
-            "method": "GET",
+            "method": "DELETE",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/posiciones-juego",
+              "raw": "{{baseUrl}}/api/jugadores/:id",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "api",
-                "posiciones-juego"
+                "jugadores",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{jugadorEliminarId}}"
+                }
               ]
-            }
+            },
+            "description": "Eliminación lógica idempotente. Sus goles se conservan en el historial.\n\nEl pre-request registra un integrante solo para eliminarlo."
           },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const api = (method, path, body) => new Promise((resolve, reject) => pm.sendRequest({",
+                  "    url: pm.variables.get(\"baseUrl\") + path,",
+                  "    method,",
+                  "    header: {",
+                  "        \"Content-Type\": method === \"PATCH\" ? \"application/merge-patch+json\" : \"application/json\",",
+                  "        \"Idempotency-Key\": pm.variables.replaceIn(\"{{$guid}}\")",
+                  "    },",
+                  "    body: body ? { mode: \"raw\", raw: JSON.stringify(body) } : undefined",
+                  "}, (err, res) => {",
+                  "    if (err) return reject(err);",
+                  "    if (res.code >= 400) return reject(new Error(method + \" \" + path + \" → \" + res.code + \" \" + res.text()));",
+                  "    resolve(res.code === 204 ? null : res.json());",
+                  "}));",
+                  "const v = (name) => pm.collectionVariables.get(name);",
+                  "",
+                  "api(\"POST\", \"/api/equipos/\" + v(\"equipoLocalId\") + \"/jugadores\", { posicionJuegoId: 2, nombres: \"Temporal\", apellidos: \"Postman\", numeroCamiseta: 99 })",
+                  "    .then(j => pm.collectionVariables.set(\"jugadorEliminarId\", j.id));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 204\", () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Partidos",
+      "description": "Endpoints de `/api/partidos`, en el mismo orden que Scalar. Programar un partido prepara antes su propio torneo con dos equipos inscritos.",
+      "item": [
+        {
+          "name": "/api/partidos",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/partidos?estado=Jugado&sortBy=fechaProgramada&sortDirection=asc",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "partidos"
+              ],
+              "query": [
+                {
+                  "key": "torneoId",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "fechaDesde",
+                  "value": "2026-01-01",
+                  "disabled": true
+                },
+                {
+                  "key": "fechaHasta",
+                  "value": "2026-12-31",
+                  "disabled": true
+                },
+                {
+                  "key": "equipoId",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "estado",
+                  "value": "Jugado"
+                },
+                {
+                  "key": "pageNumber",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "pageSize",
+                  "value": "10",
+                  "disabled": true
+                },
+                {
+                  "key": "sortBy",
+                  "value": "fechaProgramada"
+                },
+                {
+                  "key": "sortDirection",
+                  "value": "asc"
+                }
+              ]
+            },
+            "description": "Lista paginada. Filtros: torneoId, fechaDesde, fechaHasta, equipoId (local o visitante), estado."
+          },
+          "response": [],
           "event": [
             {
               "listen": "test",
@@ -1234,20 +867,15 @@
                   "    pm.expect(body).to.have.all.keys(\"data\", \"pageNumber\", \"pageSize\", \"totalRecords\", \"totalPages\");",
                   "    pm.expect(body.data).to.be.an(\"array\");",
                   "    pm.expect(body.totalPages).to.eql(Math.ceil(body.totalRecords / body.pageSize));",
-                  "});"
+                  "});",
+                  "pm.test(\"Solo partidos jugados\", () => pm.response.json().data.forEach(p => pm.expect(p.estado).to.eql(\"Jugado\")));"
                 ]
               }
             }
           ]
-        }
-      ]
-    },
-    {
-      "name": "04 Partidos y resultados",
-      "description": "Calendario, registro de resultado con goleadores, tabla y goleadores del torneo de la ejecución.",
-      "item": [
+        },
         {
-          "name": "Programar partido",
+          "name": "/api/partidos",
           "request": {
             "method": "POST",
             "header": [
@@ -1272,15 +900,57 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"torneoId\": \"{{torneoId}}\",\n  \"equipoLocalId\": \"{{equipoLocalId}}\",\n  \"equipoVisitanteId\": \"{{equipoVisitanteId}}\",\n  \"fechaProgramada\": \"2026-11-15T18:00:00Z\",\n  \"sede\": \"Cancha 1\"\n}",
+              "raw": "{\n  \"torneoId\": \"{{torneoPartidosId}}\",\n  \"equipoLocalId\": \"{{equipoLocalId}}\",\n  \"equipoVisitanteId\": \"{{equipoVisitanteId}}\",\n  \"fechaProgramada\": \"2026-11-15T18:00:00Z\",\n  \"sede\": \"Cancha 1\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
                 }
               }
-            }
+            },
+            "description": "Programa un partido en el calendario del torneo. Requiere el encabezado Idempotency-Key."
           },
+          "response": [],
           "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Prepara el torneo del partido: equipo rival con un integrante, torneo propio de la ejecución",
+                  "// (así no cambia la tabla del seed), inscripción de los dos equipos y torneo en curso.",
+                  "const api = (method, path, body) => new Promise((resolve, reject) => pm.sendRequest({",
+                  "    url: pm.variables.get(\"baseUrl\") + path,",
+                  "    method,",
+                  "    header: {",
+                  "        \"Content-Type\": method === \"PATCH\" ? \"application/merge-patch+json\" : \"application/json\",",
+                  "        \"Idempotency-Key\": pm.variables.replaceIn(\"{{$guid}}\")",
+                  "    },",
+                  "    body: body ? { mode: \"raw\", raw: JSON.stringify(body) } : undefined",
+                  "}, (err, res) => {",
+                  "    if (err) return reject(err);",
+                  "    if (res.code >= 400) return reject(new Error(method + \" \" + path + \" → \" + res.code + \" \" + res.text()));",
+                  "    resolve(res.code === 204 ? null : res.json());",
+                  "}));",
+                  "const v = (name) => pm.collectionVariables.get(name);",
+                  "",
+                  "api(\"POST\", \"/api/equipos\", { nombre: \"Visitante \" + v(\"sufijo\"), abreviatura: v(\"abreviaturaVisitante\"), departamento: \"Contabilidad\" })",
+                  "    .then(e => {",
+                  "        pm.collectionVariables.set(\"equipoVisitanteId\", e.id);",
+                  "        return api(\"POST\", \"/api/equipos/\" + e.id + \"/jugadores\", { posicionJuegoId: 4, nombres: \"Luis\", apellidos: \"Pérez\", numeroCamiseta: 10 });",
+                  "    })",
+                  "    .then(j => {",
+                  "        pm.collectionVariables.set(\"jugadorVisitanteId\", j.id);",
+                  "        return api(\"POST\", \"/api/torneos\", { nombre: \"Torneo Partidos \" + v(\"sufijo\"), descripcion: \"Creado desde la colección\", fechaInicio: \"2026-10-01\", fechaFin: \"2026-12-31\" });",
+                  "    })",
+                  "    .then(t => {",
+                  "        pm.collectionVariables.set(\"torneoPartidosId\", t.id);",
+                  "        return api(\"POST\", \"/api/torneos/\" + t.id + \"/equipos\", { equipoId: v(\"equipoLocalId\") });",
+                  "    })",
+                  "    .then(() => api(\"POST\", \"/api/torneos/\" + v(\"torneoPartidosId\") + \"/equipos\", { equipoId: v(\"equipoVisitanteId\") }))",
+                  "    .then(() => api(\"PATCH\", \"/api/torneos/\" + v(\"torneoPartidosId\"), { estado: \"EnCurso\" }));"
+                ]
+              }
+            },
             {
               "listen": "test",
               "script": {
@@ -1297,36 +967,97 @@
           ]
         },
         {
-          "name": "Obtener partido",
+          "name": "/api/partidos/{id}",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/partidos/{{partidoId}}",
+              "raw": "{{baseUrl}}/api/partidos/:id",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "api",
                 "partidos",
-                "{{partidoId}}"
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{partidoId}}"
+                }
               ]
-            }
+            },
+            "description": "Detalle del partido con su marcador y goleadores."
           },
+          "response": [],
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));"
+                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Partido programado sin goles\", () => pm.expect(pm.response.json().goles).to.be.empty);"
                 ]
               }
             }
           ]
         },
         {
-          "name": "Cambiar sede (PATCH)",
+          "name": "/api/partidos/{id}",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/partidos/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "partidos",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{partidoId}}"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"equipoLocalId\": \"{{equipoLocalId}}\",\n  \"equipoVisitanteId\": \"{{equipoVisitanteId}}\",\n  \"fechaProgramada\": \"2026-11-16T18:00:00Z\",\n  \"sede\": \"Cancha 1\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Reprogramación completa (idempotente). Solo partidos en estado Programado."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Fecha reprogramada\", () => pm.expect(pm.response.json().fechaProgramada).to.include(\"2026-11-16\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "/api/partidos/{id}",
           "request": {
             "method": "PATCH",
             "header": [
@@ -1336,14 +1067,20 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/partidos/{{partidoId}}",
+              "raw": "{{baseUrl}}/api/partidos/:id",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "api",
                 "partidos",
-                "{{partidoId}}"
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{partidoId}}"
+                }
               ]
             },
             "body": {
@@ -1354,8 +1091,10 @@
                   "language": "json"
                 }
               }
-            }
+            },
+            "description": "Modificación parcial: fecha, sede o cancelación (estado \"Cancelado\")."
           },
+          "response": [],
           "event": [
             {
               "listen": "test",
@@ -1370,7 +1109,69 @@
           ]
         },
         {
-          "name": "Registrar resultado",
+          "name": "/api/partidos/{id}",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/partidos/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "partidos",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{partidoEliminarId}}"
+                }
+              ]
+            },
+            "description": "Eliminación lógica idempotente. Un partido jugado no puede eliminarse.\n\nEl pre-request programa un partido solo para eliminarlo."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const api = (method, path, body) => new Promise((resolve, reject) => pm.sendRequest({",
+                  "    url: pm.variables.get(\"baseUrl\") + path,",
+                  "    method,",
+                  "    header: {",
+                  "        \"Content-Type\": method === \"PATCH\" ? \"application/merge-patch+json\" : \"application/json\",",
+                  "        \"Idempotency-Key\": pm.variables.replaceIn(\"{{$guid}}\")",
+                  "    },",
+                  "    body: body ? { mode: \"raw\", raw: JSON.stringify(body) } : undefined",
+                  "}, (err, res) => {",
+                  "    if (err) return reject(err);",
+                  "    if (res.code >= 400) return reject(new Error(method + \" \" + path + \" → \" + res.code + \" \" + res.text()));",
+                  "    resolve(res.code === 204 ? null : res.json());",
+                  "}));",
+                  "const v = (name) => pm.collectionVariables.get(name);",
+                  "",
+                  "api(\"POST\", \"/api/partidos\", { torneoId: v(\"torneoPartidosId\"), equipoLocalId: v(\"equipoVisitanteId\"), equipoVisitanteId: v(\"equipoLocalId\"), fechaProgramada: \"2026-11-22T18:00:00Z\", sede: \"Cancha 3\" })",
+                  "    .then(p => pm.collectionVariables.set(\"partidoEliminarId\", p.id));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 204\", () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "/api/partidos/{id}/resultado",
           "request": {
             "method": "POST",
             "header": [
@@ -1384,18 +1185,23 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/partidos/{{partidoId}}/resultado",
+              "raw": "{{baseUrl}}/api/partidos/:id/resultado",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "api",
                 "partidos",
-                "{{partidoId}}",
+                ":id",
                 "resultado"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{partidoId}}"
+                }
               ]
             },
-            "description": "Genera el evento de dominio PartidoResultRegistered.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"golesLocal\": 2,\n  \"golesVisitante\": 1,\n  \"goles\": [\n    {\n      \"jugadorId\": \"{{jugadorLocalId}}\",\n      \"equipoId\": \"{{equipoLocalId}}\",\n      \"minuto\": 10\n    },\n    {\n      \"jugadorId\": \"{{jugadorLocalId}}\",\n      \"equipoId\": \"{{equipoLocalId}}\",\n      \"minuto\": 55\n    },\n    {\n      \"jugadorId\": \"{{jugadorVisitanteId}}\",\n      \"equipoId\": \"{{equipoVisitanteId}}\",\n      \"minuto\": 80\n    }\n  ]\n}",
@@ -1404,8 +1210,10 @@
                   "language": "json"
                 }
               }
-            }
+            },
+            "description": "Registra el resultado y los goleadores. El partido pasa a Jugado. Requiere el encabezado Idempotency-Key."
           },
+          "response": [],
           "event": [
             {
               "listen": "test",
@@ -1424,25 +1232,58 @@
               }
             }
           ]
-        },
+        }
+      ]
+    },
+    {
+      "name": "PosicionesJuego",
+      "description": "Catálogo de posiciones de juego.",
+      "item": [
         {
-          "name": "Partidos del torneo",
+          "name": "/api/posiciones-juego",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/torneos/{{torneoId}}/partidos",
+              "raw": "{{baseUrl}}/api/posiciones-juego",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "api",
-                "torneos",
-                "{{torneoId}}",
-                "partidos"
+                "posiciones-juego"
+              ],
+              "query": [
+                {
+                  "key": "activo",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "pageNumber",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "pageSize",
+                  "value": "10",
+                  "disabled": true
+                },
+                {
+                  "key": "sortBy",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "sortDirection",
+                  "value": "asc",
+                  "disabled": true
+                }
               ]
-            }
+            },
+            "description": "Lista paginada. Filtro: activo."
           },
+          "response": [],
           "event": [
             {
               "listen": "test",
@@ -1456,30 +1297,662 @@
                   "    pm.expect(body).to.have.all.keys(\"data\", \"pageNumber\", \"pageSize\", \"totalRecords\", \"totalPages\");",
                   "    pm.expect(body.data).to.be.an(\"array\");",
                   "    pm.expect(body.totalPages).to.eql(Math.ceil(body.totalRecords / body.pageSize));",
-                  "});"
+                  "});",
+                  "pm.test(\"Portero, Defensa, Mediocampista y Delantero\", () =>",
+                  "    pm.expect(pm.response.json().data.map(p => p.nombre)).to.include.members([\"Portero\", \"Defensa\", \"Mediocampista\", \"Delantero\"]));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Torneos",
+      "description": "Endpoints de `/api/torneos`, en el mismo orden que Scalar. Las consultas del torneo (equipos, partidos, tabla y goleadores) usan el torneo del seed.",
+      "item": [
+        {
+          "name": "/api/torneos",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/torneos?nombre=Mundialito Corporativo 2026&sortBy=nombre&sortDirection=asc",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "torneos"
+              ],
+              "query": [
+                {
+                  "key": "nombre",
+                  "value": "Mundialito Corporativo 2026"
+                },
+                {
+                  "key": "estado",
+                  "value": "EnCurso",
+                  "disabled": true
+                },
+                {
+                  "key": "pageNumber",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "pageSize",
+                  "value": "10",
+                  "disabled": true
+                },
+                {
+                  "key": "sortBy",
+                  "value": "nombre"
+                },
+                {
+                  "key": "sortDirection",
+                  "value": "asc"
+                }
+              ]
+            },
+            "description": "Lista paginada. Filtros: nombre, estado."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test(\"Formato paginado { data, pageNumber, pageSize, totalRecords, totalPages }\", () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body).to.have.all.keys(\"data\", \"pageNumber\", \"pageSize\", \"totalRecords\", \"totalPages\");",
+                  "    pm.expect(body.data).to.be.an(\"array\");",
+                  "    pm.expect(body.totalPages).to.eql(Math.ceil(body.totalRecords / body.pageSize));",
+                  "});",
+                  "",
+                  "const torneo = pm.response.json().data[0];",
+                  "pm.test(\"Existe el torneo del seed\", () => pm.expect(torneo, \"Ejecute la API con la base vacía para cargar el seed\").to.exist);",
+                  "if (torneo) pm.collectionVariables.set(\"seedTorneoId\", torneo.id);"
                 ]
               }
             }
           ]
         },
         {
-          "name": "Tabla de posiciones del torneo",
+          "name": "/api/torneos",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{idempotencyKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/torneos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "torneos"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Torneo Postman {{sufijo}}\",\n  \"descripcion\": \"Creado desde la colección\",\n  \"fechaInicio\": \"2026-10-01\",\n  \"fechaFin\": \"2026-12-31\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Crea un torneo en estado Planificado. Requiere el encabezado Idempotency-Key."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 201\", () => pm.response.to.have.status(201));",
+                  "",
+                  "pm.test(\"Location apunta al recurso creado\", () => pm.expect(pm.response.headers.get(\"Location\")).to.include(\"/api/torneos/\"));",
+                  "const torneo = pm.response.json();",
+                  "pm.test(\"Estado inicial Planificado\", () => pm.expect(torneo.estado).to.eql(\"Planificado\"));",
+                  "pm.collectionVariables.set(\"torneoId\", torneo.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "/api/torneos/{id}",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/torneos/{{torneoId}}/tabla-posiciones",
+              "raw": "{{baseUrl}}/api/torneos/:id",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "api",
                 "torneos",
-                "{{torneoId}}",
-                "tabla-posiciones"
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{torneoId}}"
+                }
               ]
             }
           },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Es el torneo creado\", () => pm.expect(pm.response.json().nombre).to.eql(\"Torneo Postman \" + pm.collectionVariables.get(\"sufijo\")));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "/api/torneos/{id}",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/torneos/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "torneos",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{torneoId}}"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Torneo Postman {{sufijo}}\",\n  \"descripcion\": \"Descripción reemplazada\",\n  \"fechaInicio\": \"2026-10-01\",\n  \"fechaFin\": \"2026-12-31\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Reemplazo completo (idempotente)."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Descripción reemplazada\", () => pm.expect(pm.response.json().descripcion).to.eql(\"Descripción reemplazada\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "/api/torneos/{id}",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/merge-patch+json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/torneos/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "torneos",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{torneoId}}"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"estado\": \"EnCurso\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Modificación parcial de datos o cambio de estado."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Estado EnCurso\", () => pm.expect(pm.response.json().estado).to.eql(\"EnCurso\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "/api/torneos/{id}",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/torneos/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "torneos",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{torneoEliminarId}}"
+                }
+              ]
+            },
+            "description": "Eliminación lógica idempotente. No se elimina un torneo con partidos jugados.\n\nEl pre-request crea un torneo solo para eliminarlo."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const api = (method, path, body) => new Promise((resolve, reject) => pm.sendRequest({",
+                  "    url: pm.variables.get(\"baseUrl\") + path,",
+                  "    method,",
+                  "    header: {",
+                  "        \"Content-Type\": method === \"PATCH\" ? \"application/merge-patch+json\" : \"application/json\",",
+                  "        \"Idempotency-Key\": pm.variables.replaceIn(\"{{$guid}}\")",
+                  "    },",
+                  "    body: body ? { mode: \"raw\", raw: JSON.stringify(body) } : undefined",
+                  "}, (err, res) => {",
+                  "    if (err) return reject(err);",
+                  "    if (res.code >= 400) return reject(new Error(method + \" \" + path + \" → \" + res.code + \" \" + res.text()));",
+                  "    resolve(res.code === 204 ? null : res.json());",
+                  "}));",
+                  "const v = (name) => pm.collectionVariables.get(name);",
+                  "",
+                  "api(\"POST\", \"/api/torneos\", { nombre: \"Torneo Eliminar \" + v(\"sufijo\"), descripcion: null, fechaInicio: \"2026-10-01\", fechaFin: \"2026-12-31\" })",
+                  "    .then(t => pm.collectionVariables.set(\"torneoEliminarId\", t.id));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 204\", () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "/api/torneos/{id}/equipos",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/torneos/:id/equipos?sortBy=equipo&sortDirection=asc",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "torneos",
+                ":id",
+                "equipos"
+              ],
+              "query": [
+                {
+                  "key": "nombre",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "pageNumber",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "pageSize",
+                  "value": "10",
+                  "disabled": true
+                },
+                {
+                  "key": "sortBy",
+                  "value": "equipo"
+                },
+                {
+                  "key": "sortDirection",
+                  "value": "asc"
+                }
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{seedTorneoId}}"
+                }
+              ]
+            },
+            "description": "Equipos participantes del torneo, paginados. Filtro: nombre."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test(\"Formato paginado { data, pageNumber, pageSize, totalRecords, totalPages }\", () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body).to.have.all.keys(\"data\", \"pageNumber\", \"pageSize\", \"totalRecords\", \"totalPages\");",
+                  "    pm.expect(body.data).to.be.an(\"array\");",
+                  "    pm.expect(body.totalPages).to.eql(Math.ceil(body.totalRecords / body.pageSize));",
+                  "});",
+                  "pm.test(\"4 equipos inscritos en el torneo del seed\", () => pm.expect(pm.response.json().totalRecords).to.eql(4));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "/api/torneos/{id}/equipos",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{idempotencyKey}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/torneos/:id/equipos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "torneos",
+                ":id",
+                "equipos"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{torneoId}}"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"equipoId\": \"{{equipoLocalId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Inscribe un equipo en el torneo. Requiere el encabezado Idempotency-Key."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 201\", () => pm.response.to.have.status(201));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "/api/torneos/{id}/equipos/{equipoId}",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/torneos/:id/equipos/:equipoId",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "torneos",
+                ":id",
+                "equipos",
+                ":equipoId"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{torneoId}}"
+                },
+                {
+                  "key": "equipoId",
+                  "value": "{{equipoLocalId}}"
+                }
+              ]
+            },
+            "description": "Retira un equipo del torneo (solo si no tiene partidos en él)."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 204\", () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "/api/torneos/{id}/partidos",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/torneos/:id/partidos?sortBy=fechaProgramada&sortDirection=asc",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "torneos",
+                ":id",
+                "partidos"
+              ],
+              "query": [
+                {
+                  "key": "fechaDesde",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "fechaHasta",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "equipoId",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "estado",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "pageNumber",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "pageSize",
+                  "value": "10",
+                  "disabled": true
+                },
+                {
+                  "key": "sortBy",
+                  "value": "fechaProgramada"
+                },
+                {
+                  "key": "sortDirection",
+                  "value": "asc"
+                }
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{seedTorneoId}}"
+                }
+              ]
+            },
+            "description": "Calendario del torneo. Filtros: fechaDesde, fechaHasta, equipoId, estado."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));",
+                  "",
+                  "pm.test(\"Formato paginado { data, pageNumber, pageSize, totalRecords, totalPages }\", () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body).to.have.all.keys(\"data\", \"pageNumber\", \"pageSize\", \"totalRecords\", \"totalPages\");",
+                  "    pm.expect(body.data).to.be.an(\"array\");",
+                  "    pm.expect(body.totalPages).to.eql(Math.ceil(body.totalRecords / body.pageSize));",
+                  "});",
+                  "",
+                  "const partidos = pm.response.json().data;",
+                  "pm.test(\"6 partidos del seed: 3 jugados y 3 programados\", () => {",
+                  "    pm.expect(partidos.filter(p => p.estado === \"Jugado\")).to.have.lengthOf(3);",
+                  "    pm.expect(partidos.filter(p => p.estado === \"Programado\")).to.have.lengthOf(3);",
+                  "});",
+                  "const programado = partidos.find(p => p.estado === \"Programado\");",
+                  "if (programado) pm.collectionVariables.set(\"seedPartidoProgramadoId\", programado.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "/api/torneos/{id}/tabla-posiciones",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/torneos/:id/tabla-posiciones",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "torneos",
+                ":id",
+                "tabla-posiciones"
+              ],
+              "query": [
+                {
+                  "key": "equipo",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "pageNumber",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "pageSize",
+                  "value": "10",
+                  "disabled": true
+                },
+                {
+                  "key": "sortBy",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "sortDirection",
+                  "value": "asc",
+                  "disabled": true
+                }
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{seedTorneoId}}"
+                }
+              ]
+            },
+            "description": "Tabla de posiciones calculada desde los partidos jugados. Filtro: equipo."
+          },
+          "response": [],
           "event": [
             {
               "listen": "test",
@@ -1496,10 +1969,9 @@
                   "});",
                   "",
                   "const tabla = pm.response.json().data;",
-                  "pm.test(\"El local suma 3 puntos y va primero\", () => {",
-                  "    pm.expect(tabla[0].equipoId).to.eql(pm.collectionVariables.get(\"equipoLocalId\"));",
-                  "    pm.expect(tabla[0].puntos).to.eql(3);",
-                  "    pm.expect(tabla[0].diferenciaGol).to.eql(1);",
+                  "pm.test(\"4 equipos ordenados por puntos, diferencia de gol y goles a favor\", () => {",
+                  "    pm.expect(tabla.map(f => f.equipo)).to.eql([\"Operaciones City\", \"Tecnología FC\", \"Recursos Humanos Athletic\", \"Finanzas United\"]);",
+                  "    pm.expect(tabla.map(f => f.puntos)).to.eql([4, 3, 1, 0]);",
                   "});"
                 ]
               }
@@ -1507,23 +1979,63 @@
           ]
         },
         {
-          "name": "Goleadores del torneo",
+          "name": "/api/torneos/{id}/goleadores",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/torneos/{{torneoId}}/goleadores",
+              "raw": "{{baseUrl}}/api/torneos/:id/goleadores",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "api",
                 "torneos",
-                "{{torneoId}}",
+                ":id",
                 "goleadores"
+              ],
+              "query": [
+                {
+                  "key": "equipoId",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "jugador",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "pageNumber",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "pageSize",
+                  "value": "10",
+                  "disabled": true
+                },
+                {
+                  "key": "sortBy",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "sortDirection",
+                  "value": "asc",
+                  "disabled": true
+                }
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{seedTorneoId}}"
+                }
               ]
-            }
+            },
+            "description": "Goleadores del torneo (goles en partidos jugados). Filtros: equipoId, jugador."
           },
+          "response": [],
           "event": [
             {
               "listen": "test",
@@ -1539,10 +2051,10 @@
                   "    pm.expect(body.totalPages).to.eql(Math.ceil(body.totalRecords / body.pageSize));",
                   "});",
                   "",
-                  "pm.test(\"Ana María López lidera con 2 goles\", () => {",
+                  "pm.test(\"Líder: Alejandro Morales con 3 goles\", () => {",
                   "    const lider = pm.response.json().data[0];",
-                  "    pm.expect(lider.jugadorId).to.eql(pm.collectionVariables.get(\"jugadorLocalId\"));",
-                  "    pm.expect(lider.goles).to.eql(2);",
+                  "    pm.expect(lider.jugador).to.eql(\"Alejandro Morales\");",
+                  "    pm.expect(lider.goles).to.eql(3);",
                   "});"
                 ]
               }
@@ -1552,8 +2064,8 @@
       ]
     },
     {
-      "name": "05 Idempotencia",
-      "description": "POST con `Idempotency-Key` (ítem 6): la clave se guarda en `RegistrosIdempotencia`; repetir la petición devuelve la respuesta original sin duplicar.",
+      "name": "Idempotencia",
+      "description": "POST con `Idempotency-Key`: la clave se guarda en `RegistrosIdempotencia` y repetir la petición devuelve la respuesta original sin duplicar. PUT y DELETE son idempotentes por definición: repetirlos deja el mismo estado.",
       "item": [
         {
           "name": "POST con clave nueva",
@@ -1603,7 +2115,8 @@
                 ]
               }
             }
-          ]
+          ],
+          "response": []
         },
         {
           "name": "Repetir con la misma clave y el mismo cuerpo",
@@ -1653,7 +2166,8 @@
                 ]
               }
             }
-          ]
+          ],
+          "response": []
         },
         {
           "name": "Misma clave con otro cuerpo",
@@ -1700,7 +2214,8 @@
                 ]
               }
             }
-          ]
+          ],
+          "response": []
         },
         {
           "name": "POST sin Idempotency-Key",
@@ -1743,7 +2258,8 @@
                 ]
               }
             }
-          ]
+          ],
+          "response": []
         },
         {
           "name": "Verificar que no se duplicó",
@@ -1778,13 +2294,125 @@
                 ]
               }
             }
+          ],
+          "response": []
+        },
+        {
+          "name": "PUT repetido: mismo resultado",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/torneos/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "torneos",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{torneoId}}"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Torneo Postman {{sufijo}}\",\n  \"descripcion\": \"Descripción reemplazada\",\n  \"fechaInicio\": \"2026-10-01\",\n  \"fechaFin\": \"2026-12-31\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Mismo estado que el primer PUT\", () => pm.expect(pm.response.json().descripcion).to.eql(\"Descripción reemplazada\"));"
+                ]
+              }
+            }
           ]
+        },
+        {
+          "name": "Eliminar equipo",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/equipos/{{equipoIdempotenteId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "equipos",
+                "{{equipoIdempotenteId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 204\", () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Eliminar el mismo equipo otra vez",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/equipos/{{equipoIdempotenteId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "equipos",
+                "{{equipoIdempotenteId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 204\", () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ],
+          "response": []
         }
       ]
     },
     {
-      "name": "06 Filtros y paginación",
-      "description": "Todos los GET de colección aceptan `pageNumber`, `pageSize` (1-100), `sortBy`, `sortDirection` (asc/desc) y filtros por entidad (ítem 10). La paginación se hace en SQL.",
+      "name": "Filtros y paginación",
+      "description": "Todos los GET de colección aceptan `pageNumber`, `pageSize` (1-100), `sortBy`, `sortDirection` (asc/desc) y filtros por entidad. La paginación se hace en SQL.",
       "item": [
         {
           "name": "Equipos: página 1 de tamaño 2, nombre descendente",
@@ -1844,7 +2472,8 @@
                 ]
               }
             }
-          ]
+          ],
+          "response": []
         },
         {
           "name": "Equipos: página 2",
@@ -1898,7 +2527,8 @@
                 ]
               }
             }
-          ]
+          ],
+          "response": []
         },
         {
           "name": "Equipos: página fuera de rango",
@@ -1944,7 +2574,8 @@
                 ]
               }
             }
-          ]
+          ],
+          "response": []
         },
         {
           "name": "Partidos por fecha y estado",
@@ -2004,7 +2635,8 @@
                 ]
               }
             }
-          ]
+          ],
+          "response": []
         },
         {
           "name": "Partidos por equipo",
@@ -2046,7 +2678,8 @@
                 ]
               }
             }
-          ]
+          ],
+          "response": []
         },
         {
           "name": "Jugadores por nombre",
@@ -2087,7 +2720,8 @@
                 ]
               }
             }
-          ]
+          ],
+          "response": []
         },
         {
           "name": "Tabla filtrada por equipo (conserva la posición oficial)",
@@ -2124,7 +2758,8 @@
                 ]
               }
             }
-          ]
+          ],
+          "response": []
         },
         {
           "name": "Goleadores ordenados por jugador",
@@ -2175,13 +2810,14 @@
                 ]
               }
             }
-          ]
+          ],
+          "response": []
         }
       ]
     },
     {
-      "name": "07 Errores",
-      "description": "Result Pattern → códigos HTTP (ítem 5). Los errores usan ProblemDetails con `errorCode`, `traceId` y `correlationId`.",
+      "name": "Errores",
+      "description": "Result Pattern → códigos HTTP. Los errores usan ProblemDetails con `errorCode`, `traceId` y `correlationId`.",
       "item": [
         {
           "name": "404: equipo inexistente",
@@ -2211,7 +2847,8 @@
                 ]
               }
             }
-          ]
+          ],
+          "response": []
         },
         {
           "name": "400: datos inválidos",
@@ -2259,7 +2896,8 @@
                 ]
               }
             }
-          ]
+          ],
+          "response": []
         },
         {
           "name": "400: JSON mal formado",
@@ -2306,7 +2944,8 @@
                 ]
               }
             }
-          ]
+          ],
+          "response": []
         },
         {
           "name": "400: sortBy no permitido",
@@ -2341,7 +2980,8 @@
                 ]
               }
             }
-          ]
+          ],
+          "response": []
         },
         {
           "name": "400: pageSize mayor a 100",
@@ -2376,7 +3016,8 @@
                 ]
               }
             }
-          ]
+          ],
+          "response": []
         },
         {
           "name": "409: nombre de equipo duplicado",
@@ -2423,7 +3064,8 @@
                 ]
               }
             }
-          ]
+          ],
+          "response": []
         },
         {
           "name": "409: inscribir dos veces el mismo equipo",
@@ -2440,15 +3082,21 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/api/torneos/{{torneoId}}/equipos",
+              "raw": "{{baseUrl}}/api/torneos/:id/equipos",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "api",
                 "torneos",
-                "{{torneoId}}",
+                ":id",
                 "equipos"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "{{torneoPartidosId}}"
+                }
               ]
             },
             "body": {
@@ -2472,7 +3120,8 @@
                 ]
               }
             }
-          ]
+          ],
+          "response": []
         },
         {
           "name": "400: goles que no coinciden con el marcador",
@@ -2523,7 +3172,8 @@
                 ]
               }
             }
-          ]
+          ],
+          "response": []
         },
         {
           "name": "409: resultado ya registrado",
@@ -2572,7 +3222,8 @@
                 ]
               }
             }
-          ]
+          ],
+          "response": []
         },
         {
           "name": "409: eliminar un partido jugado",
@@ -2602,7 +3253,71 @@
                 ]
               }
             }
-          ]
+          ],
+          "response": []
+        },
+        {
+          "name": "404: eliminar un equipo que nunca existió",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/equipos/00000000-0000-0000-0000-000000000003",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "equipos",
+                "00000000-0000-0000-0000-000000000003"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 404\", () => pm.response.to.have.status(404));",
+                  "pm.test(\"errorCode Equipo.NotFound\", () => pm.expect(pm.response.json().errorCode).to.eql(\"Equipo.NotFound\"));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "404: retirar del torneo a un equipo no inscrito",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/torneos/{{torneoId}}/equipos/{{equipoIdempotenteId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "torneos",
+                "{{torneoId}}",
+                "equipos",
+                "{{equipoIdempotenteId}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responde 404\", () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ],
+          "response": []
         },
         {
           "name": "404: ruta inexistente",
@@ -2630,13 +3345,14 @@
                 ]
               }
             }
-          ]
+          ],
+          "response": []
         }
       ]
     },
     {
-      "name": "08 Trazabilidad",
-      "description": "CorrelationId y TraceId por request (ítem 7).",
+      "name": "Trazabilidad",
+      "description": "CorrelationId y TraceId en cada request.",
       "item": [
         {
           "name": "X-Correlation-Id propio",
@@ -2673,7 +3389,8 @@
                 ]
               }
             }
-          ]
+          ],
+          "response": []
         },
         {
           "name": "Error con traceId y correlationId",
@@ -2711,132 +3428,8 @@
                 ]
               }
             }
-          ]
-        }
-      ]
-    },
-    {
-      "name": "09 Eliminación idempotente",
-      "description": "DELETE lógico e idempotente: la segunda vez también responde 204; un id que nunca existió responde 404.",
-      "item": [
-        {
-          "name": "Eliminar equipo",
-          "request": {
-            "method": "DELETE",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/equipos/{{equipoIdempotenteId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "equipos",
-                "{{equipoIdempotenteId}}"
-              ]
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Responde 204\", () => pm.response.to.have.status(204));"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "Eliminar el mismo equipo otra vez",
-          "request": {
-            "method": "DELETE",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/equipos/{{equipoIdempotenteId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "equipos",
-                "{{equipoIdempotenteId}}"
-              ]
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Responde 204\", () => pm.response.to.have.status(204));"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "Eliminar equipo que nunca existió",
-          "request": {
-            "method": "DELETE",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/equipos/00000000-0000-0000-0000-000000000003",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "equipos",
-                "00000000-0000-0000-0000-000000000003"
-              ]
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Responde 404\", () => pm.response.to.have.status(404));",
-                  "pm.test(\"errorCode Equipo.NotFound\", () => pm.expect(pm.response.json().errorCode).to.eql(\"Equipo.NotFound\"));"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "Retirar del torneo a un equipo no inscrito",
-          "request": {
-            "method": "DELETE",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/torneos/{{torneoId}}/equipos/{{equipoIdempotenteId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "torneos",
-                "{{torneoId}}",
-                "equipos",
-                "{{equipoIdempotenteId}}"
-              ]
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test(\"Responde 404\", () => pm.response.to.have.status(404));"
-                ]
-              }
-            }
-          ]
+          ],
+          "response": []
         }
       ]
     }
@@ -2889,6 +3482,10 @@
       "value": ""
     },
     {
+      "key": "abreviaturaEliminar",
+      "value": ""
+    },
+    {
       "key": "claveIdempotencia",
       "value": ""
     },
@@ -2901,15 +3498,15 @@
       "value": ""
     },
     {
-      "key": "torneoId",
-      "value": ""
-    },
-    {
       "key": "equipoLocalId",
       "value": ""
     },
     {
       "key": "equipoVisitanteId",
+      "value": ""
+    },
+    {
+      "key": "equipoEliminarId",
       "value": ""
     },
     {
@@ -2921,7 +3518,27 @@
       "value": ""
     },
     {
+      "key": "jugadorEliminarId",
+      "value": ""
+    },
+    {
+      "key": "torneoId",
+      "value": ""
+    },
+    {
+      "key": "torneoPartidosId",
+      "value": ""
+    },
+    {
+      "key": "torneoEliminarId",
+      "value": ""
+    },
+    {
       "key": "partidoId",
+      "value": ""
+    },
+    {
+      "key": "partidoEliminarId",
       "value": ""
     },
     {
