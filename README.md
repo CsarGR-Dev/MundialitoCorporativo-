@@ -104,6 +104,8 @@ dotnet run --project src/MundialitoCorporativo.Api      # http://localhost:5000
 
 Las pruebas de integración (incluida la API completa con `WebApplicationFactory`) crean una base temporal ejecutando `001_DDL_CrearBaseDatos.sql` y la eliminan al terminar. Usan la instancia local por defecto; otra instancia se indica con la variable de entorno `MUNDIALITO_TEST_SQLSERVER`. Si no hay un SQL Server disponible, se omiten.
 
+Cada `dotnet test` genera además un catálogo de pruebas por proyecto, con el resultado de cada prueba, el componente que ejercita y su objetivo: `tests/MundialitoCorporativo.UnitTests/Catalogo_Pruebas_Unitarias.txt` y `tests/MundialitoCorporativo.IntegrationTests/Catalogo_Pruebas_Integracion.txt`. Las descripciones están en el `Catalogo_Descripciones.txt` de cada proyecto; una prueba nueva sin su línea aparece como *SIN DESCRIPCION*. Se desactiva con `dotnet test -p:GenerarCatalogoPruebas=false`.
+
 ## API REST
 
 Base: `http://localhost:5000/api`. En desarrollo y en Docker, el documento OpenAPI está en `/openapi/v1.json` y la interfaz de Scalar para explorar y probar los endpoints en `http://localhost:5000/scalar` (se controla con `OpenApi:Enabled`).

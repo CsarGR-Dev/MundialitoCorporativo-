@@ -1,0 +1,96 @@
+# =============================================================================
+#  CATÁLOGO DE DESCRIPCIONES DE LAS PRUEBAS DE INTEGRACIÓN
+#  Mundialito de Fútbol Corporativo · MundialitoCorporativo.IntegrationTests
+# =============================================================================
+#
+#  Este archivo es la FUENTE DE DATOS de tests/Generar_Catalogo_Pruebas.ps1.
+#  No se ejecuta: el guion lo lee después de cada `dotnet test` para acompañar
+#  cada prueba con el componente que ejercita y su objetivo, y unirlo al
+#  resultado real de la ejecución en Catalogo_Pruebas_Integracion.txt.
+#
+#  Formato de cada línea, separado por barras verticales:
+#
+#      Clase | Metodo | ComponenteProbado | Objetivo
+#
+#  Reglas:
+#    - Las líneas que empiezan con # y las vacías se ignoran.
+#    - NO usar el carácter de barra vertical dentro de los textos.
+#    - Si se agrega una prueba nueva y no se agrega aquí su línea, el informe
+#      la marca como SIN DESCRIPCIÓN. Es deliberado: hace visible el olvido.
+#
+# =============================================================================
+
+# ---------------------------------------------------------------------------
+# ApiSqlServerTests — API completa por HTTP (WebApplicationFactory) contra SQL Server
+# ---------------------------------------------------------------------------
+ApiSqlServerTests|PostEquipo_WithoutIdempotencyKey_ShouldReturn400|POST /api/equipos|Verificar por HTTP que un POST sin Idempotency-Key responde 400 con el código Idempotency.KeyRequired.
+ApiSqlServerTests|PostEquipo_RepeatedWithSameKey_ShouldReturnOriginalResponseWithoutDuplicating|POST /api/equipos|Comprobar que repetir el POST con la misma clave devuelve la respuesta original y no crea un segundo equipo.
+ApiSqlServerTests|PostEquipo_WithSameKeyAndDifferentBody_ShouldReturn409|POST /api/equipos|Verificar que reutilizar la clave con otro cuerpo responde 409.
+ApiSqlServerTests|ConcurrentPosts_WithSameKey_ShouldCreateASingleEquipo|POST /api/equipos (concurrencia)|Enviar varios POST simultáneos con la misma clave y comprobar que se crea un solo equipo.
+ApiSqlServerTests|IdempotencyKey_ShouldSurviveApiRestart|RegistrosIdempotencia|Reiniciar la API y comprobar que la repetición sigue devolviendo la respuesta original, porque la clave está en la base.
+ApiSqlServerTests|PostEquipo_WithDuplicateNombreAndNewKey_ShouldReturn409WithErrorCodeAndTraceId|POST /api/equipos|Verificar que un nombre duplicado responde 409 con errorCode y traceId en el ProblemDetails.
+ApiSqlServerTests|PostEquipo_WithInvalidData_ShouldReturn400WithFieldErrors|POST /api/equipos|Comprobar que datos inválidos responden 400 con los errores por campo.
+ApiSqlServerTests|PostEquipo_WithMalformedJson_ShouldReturn400|POST /api/equipos|Verificar que un JSON mal formado responde 400 en formato ProblemDetails, sin detalles internos.
+ApiSqlServerTests|GetEquipo_ThatDoesNotExist_ShouldReturn404|GET /api/equipos/{id}|Comprobar que un equipo inexistente responde 404.
+ApiSqlServerTests|GetEquipos_WithInvalidPagingAndSort_ShouldReturn400|GET /api/equipos|Verificar que una paginación inválida o un sortBy no permitido responden 400.
+ApiSqlServerTests|GetEquipos_ShouldReturnRequiredPagedFormat|GET /api/equipos|Comprobar el formato exacto del requerimiento: data, pageNumber, pageSize, totalRecords y totalPages.
+ApiSqlServerTests|PutEquipo_Twice_ShouldLeaveTheSameState|PUT /api/equipos/{id}|Verificar que el mismo PUT dos veces deja el mismo estado (idempotente).
+ApiSqlServerTests|PutEquipo_ThatDoesNotExist_ShouldReturn404|PUT /api/equipos/{id}|Comprobar que un PUT a un Id inexistente responde 404 y no crea el recurso.
+ApiSqlServerTests|PatchEquipo_WithMergePatch_ShouldChangeOnlySentFields|PATCH /api/equipos/{id}|Verificar que un PATCH con JSON Merge Patch cambia solo los campos enviados.
+ApiSqlServerTests|DeleteEquipo_Twice_ShouldReturn204BothTimes|DELETE /api/equipos/{id}|Comprobar que eliminar dos veces responde 204 las dos veces (DELETE idempotente).
+ApiSqlServerTests|DeleteEquipo_ThatNeverExisted_ShouldReturn404|DELETE /api/equipos/{id}|Verificar que eliminar un Id que nunca existió responde 404.
+ApiSqlServerTests|TorneoFlow_OverHttp_ShouldRegisterResultAndCalculateTablaAndGoleadores|Flujo del torneo por HTTP|Recorrer el flujo completo: torneo, inscripciones, jugadores, partido y resultado, y verificar la tabla de posiciones y los goleadores.
+ApiSqlServerTests|GetJugadores_OfUnknownEquipo_ShouldReturn404|GET /api/equipos/{id}/jugadores|Comprobar que los integrantes de un equipo inexistente responden 404.
+ApiSqlServerTests|RegisterJugador_ShouldReturn201WithLocationOfTheJugador|POST /api/equipos/{id}/jugadores|Verificar que registrar un integrante responde 201 con Location hacia el jugador creado.
+
+# ---------------------------------------------------------------------------
+# ObservabilitySqlServerTests — trazabilidad por HTTP
+# ---------------------------------------------------------------------------
+ObservabilitySqlServerTests|Response_ShouldReturnReceivedCorrelationIdAndTraceId|CorrelationIdMiddleware|Comprobar que la respuesta devuelve el X-Correlation-Id recibido y un X-Trace-Id.
+ObservabilitySqlServerTests|Response_WithoutCorrelationId_ShouldGenerateOne|CorrelationIdMiddleware|Verificar que sin X-Correlation-Id la API genera uno y lo devuelve.
+ObservabilitySqlServerTests|Response_WithIncomingTraceparent_ShouldContinueThatTrace|Trazas W3C|Verificar que un traceparent entrante continúa la misma traza: el X-Trace-Id coincide.
+ObservabilitySqlServerTests|ErrorResponse_ShouldIncludeSameTraceIdAndCorrelationIdAsHeaders|ApiProblemDetails|Comprobar que un error incluye en el cuerpo el mismo traceId y correlationId que los encabezados.
+ObservabilitySqlServerTests|CreateEquipo_ShouldRegisterDomainEventLinkedToRequestTrace|EventosDominio|Verificar que crear un equipo deja su evento en EventosDominio con el TraceId y el CorrelationId del request.
+ObservabilitySqlServerTests|UnexpectedError_ShouldReturn500WithoutInternalDetailsAndWithTrace|GlobalExceptionHandler|Comprobar que un error inesperado responde 500 sin detalles internos y con su traza.
+
+# ---------------------------------------------------------------------------
+# CqrsSqlServerTests — Commands y Queries por el despachador contra SQL Server
+# ---------------------------------------------------------------------------
+CqrsSqlServerTests|TablaPosiciones_WithSeedScenario_ShouldFollowRequiredOrder|TorneoQueries (tabla de posiciones)|Verificar en SQL el orden del requerimiento: puntos, diferencia de gol y goles a favor, igual que el calculador del dominio.
+CqrsSqlServerTests|TablaPosiciones_FilteredByEquipo_ShouldKeepOfficialPosition|TorneoQueries (tabla de posiciones)|Comprobar que al filtrar por equipo se conserva la posición oficial.
+CqrsSqlServerTests|TablaPosiciones_ForUnknownTorneo_ShouldReturnNotFound|GetTablaPosicionesQueryHandler|Verificar que la tabla de un torneo inexistente devuelve NotFound.
+CqrsSqlServerTests|Goleadores_ShouldRankByGolesAndShareTiedPositions|TorneoQueries (goleadores)|Comprobar que los goleadores se ordenan por goles y que los empatados comparten posición.
+CqrsSqlServerTests|Partidos_ShouldFilterByTorneoEstadoFechaYEquipo|PartidoQueries|Verificar los filtros de partidos por torneo, estado, rango de fechas y equipo.
+CqrsSqlServerTests|PartidoDetalle_ShouldIncludeGolesOrderedByMinuto|PartidoQueries|Comprobar que el detalle de un partido incluye sus goles ordenados por minuto.
+CqrsSqlServerTests|Equipos_ShouldPaginateInDatabaseWithRequiredResponseFormat|EquipoQueries y PagedSql|Verificar que la paginación se hace en la base con OFFSET/FETCH y devuelve el formato requerido.
+CqrsSqlServerTests|EveryAllowedSortField_ShouldExecuteInBothDirections|Queries paginadas y SqlSort|Ejecutar contra SQL Server cada sortBy permitido en ambas direcciones.
+CqrsSqlServerTests|TorneoDetalle_ShouldMapDatesAndCounts|TorneoQueries|Comprobar que el detalle del torneo mapea sus fechas y la cantidad de equipos y partidos.
+CqrsSqlServerTests|Jugadores_OfUnknownEquipo_ShouldReturnNotFound_AndFilterByNombre|JugadorQueries|Verificar el NotFound de un equipo inexistente y el filtro de integrantes por nombre.
+CqrsSqlServerTests|Commands_ShouldEnforceBusinessRulesAndIdempotentDelete|Command handlers|Comprobar contra la base las reglas de negocio de los Commands y que la eliminación es idempotente.
+
+# ---------------------------------------------------------------------------
+# SqlIdempotencyStoreTests — Infrastructure/Idempotency
+# ---------------------------------------------------------------------------
+SqlIdempotencyStoreTests|TryBegin_WithNewKey_ShouldReserveIt|SqlIdempotencyStore.TryBeginAsync()|Verificar que una clave nueva queda reservada en estado EnProceso.
+SqlIdempotencyStoreTests|TryBegin_Concurrently_ShouldGrantASingleReservation|SqlIdempotencyStore.TryBeginAsync()|Lanzar reservas simultáneas de la misma clave y comprobar que solo una la obtiene (UPDLOCK, HOLDLOCK).
+SqlIdempotencyStoreTests|Complete_ShouldPersistTheOriginalResponse|SqlIdempotencyStore.CompleteAsync()|Verificar que se guardan el código, el cuerpo y los encabezados de la respuesta original.
+SqlIdempotencyStoreTests|Release_ShouldAllowTheKeyToBeReserved_Again|SqlIdempotencyStore.ReleaseAsync()|Comprobar que una clave liberada puede volver a reservarse.
+SqlIdempotencyStoreTests|SameKey_OnAnotherRoute_ShouldBeIndependent|SqlIdempotencyStore|Verificar que la misma clave en otra ruta es un registro independiente.
+SqlIdempotencyStoreTests|ExpiredKey_ShouldBeReplacedByANewReservation|SqlIdempotencyStore.TryBeginAsync()|Comprobar que una clave vencida se reemplaza por una reserva nueva.
+SqlIdempotencyStoreTests|AbandonedReservation_ShouldBeReplacedAfterTheTimeout|SqlIdempotencyStore.TryBeginAsync()|Verificar que una reserva EnProceso abandonada se reemplaza después del tiempo límite.
+SqlIdempotencyStoreTests|DeleteExpired_ShouldRemoveOnlyExpiredKeys|SqlIdempotencyStore.DeleteExpiredAsync()|Comprobar que la limpieza borra solo las claves vencidas.
+
+# ---------------------------------------------------------------------------
+# UnitOfWorkSqlServerTests — Infrastructure/Persistence contra el esquema real
+# ---------------------------------------------------------------------------
+UnitOfWorkSqlServerTests|CommitAsync_FullTorneoFlow_ShouldRoundTripAgainstScriptSchema|UnitOfWork y mapeo de EF Core|Guardar y releer un flujo completo del torneo contra el esquema del script 001, validando el mapeo de EF Core.
+UnitOfWorkSqlServerTests|CommitAsync_WhenUniqueIndexIsViolated_ShouldReturnConflictAndRollBackEverything|UnitOfWork.CommitAsync()|Verificar que una violación de índice único devuelve Conflict y revierte todo, sin guardados parciales.
+UnitOfWorkSqlServerTests|CommitAsync_WhenTwoUsersRegisterSameResult_ShouldReturnConcurrencyConflict|UnitOfWork.CommitAsync() (rowversion)|Simular dos usuarios registrando el mismo resultado y comprobar que el segundo recibe un conflicto de concurrencia.
+UnitOfWorkSqlServerTests|CommitAsync_SoftDeletedEquipo_ShouldBeHiddenAndReleaseNombre|Eliminación lógica|Verificar que un equipo eliminado deja de verse y libera su nombre para uno nuevo.
+
+# ---------------------------------------------------------------------------
+# DatabaseSeedSqlServerTests — Infrastructure/Initialization y Seed
+# ---------------------------------------------------------------------------
+DatabaseSeedSqlServerTests|InitializeDatabase_WithoutDatabase_ShouldCreateSchemaAndSeedRequiredData|DatabaseInitializer y DatabaseSeeder|Partir de un servidor sin la base y comprobar que se crea el esquema y se cargan 4 equipos, 20 jugadores y 6 partidos con 3 resultados.
+DatabaseSeedSqlServerTests|InitializeDatabase_RunAgain_ShouldNotDuplicateData|DatabaseSeeder|Verificar que volver a iniciar no duplica los datos iniciales.
+DatabaseSeedSqlServerTests|SeedScript_ShouldLoadSameDataAndBeReexecutable|Script local 003 (Db/)|Comprobar que el script SQL de datos iniciales deja la misma tabla que el seed de C# y es re-ejecutable. Se omite si la carpeta local Db/ no está disponible.

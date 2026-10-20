@@ -1,0 +1,190 @@
+# =============================================================================
+#  CATÁLOGO DE DESCRIPCIONES DE LAS PRUEBAS UNITARIAS
+#  Mundialito de Fútbol Corporativo · MundialitoCorporativo.UnitTests
+# =============================================================================
+#
+#  Este archivo es la FUENTE DE DATOS de tests/Generar_Catalogo_Pruebas.ps1.
+#  No se ejecuta: el guion lo lee después de cada `dotnet test` para acompañar
+#  cada prueba con el componente que ejercita y su objetivo, y unirlo al
+#  resultado real de la ejecución en Catalogo_Pruebas_Unitarias.txt.
+#
+#  Formato de cada línea, separado por barras verticales:
+#
+#      Clase | Metodo | ComponenteProbado | Objetivo
+#
+#  Reglas:
+#    - Las líneas que empiezan con # y las vacías se ignoran.
+#    - NO usar el carácter de barra vertical dentro de los textos.
+#    - Si se agrega una prueba nueva y no se agrega aquí su línea, el informe
+#      la marca como SIN DESCRIPCIÓN. Es deliberado: hace visible el olvido.
+#
+# =============================================================================
+
+# ---------------------------------------------------------------------------
+# TablaPosicionesCalculatorTests — Domain/TablaPosiciones
+# ---------------------------------------------------------------------------
+TablaPosicionesCalculatorTests|PointsFor_ShouldApplyWinDrawLossRule|ScoringRules.PointsFor()|Verificar la regla de puntos del requerimiento: victoria 3, empate 1 y derrota 0, para cada combinación de goles a favor y en contra.
+TablaPosicionesCalculatorTests|Calculate_Win_ShouldGiveThreePointsToWinnerAndZeroToLoser|TablaPosicionesCalculator.Calculate()|Comprobar que en un partido con ganador el vencedor suma 3 puntos y una victoria, y el perdedor 0 puntos y una derrota.
+TablaPosicionesCalculatorTests|Calculate_Draw_ShouldGiveOnePointToEachEquipo|TablaPosicionesCalculator.Calculate()|Comprobar que un empate suma 1 punto y un partido empatado a cada uno de los dos equipos.
+TablaPosicionesCalculatorTests|Calculate_DiferenciaGol_ShouldAccumulateAcrossPartidos|TablaPosicionesCalculator.Calculate()|Verificar que la diferencia de gol se acumula entre varios partidos y puede quedar negativa.
+TablaPosicionesCalculatorTests|Calculate_EquipoWithoutPartidos_ShouldHaveZeros|TablaPosicionesCalculator.Calculate()|Garantizar que un equipo inscrito que todavía no jugó aparece en la tabla con todos sus valores en cero.
+TablaPosicionesCalculatorTests|Calculate_ShouldOrderByPuntosFirst|TablaPosicionesCalculator.Calculate()|Confirmar el primer criterio de orden: más puntos va primero aunque tenga peor diferencia de gol.
+TablaPosicionesCalculatorTests|Calculate_WithEqualPuntos_ShouldOrderByDiferenciaGol|TablaPosicionesCalculator.Calculate()|Confirmar el segundo criterio: a igualdad de puntos decide la diferencia de gol.
+TablaPosicionesCalculatorTests|Calculate_WithEqualPuntosAndDiferenciaGol_ShouldOrderByGolesFavor|TablaPosicionesCalculator.Calculate()|Confirmar el tercer criterio: a igualdad de puntos y diferencia de gol deciden los goles a favor.
+TablaPosicionesCalculatorTests|Calculate_WithCompleteTie_ShouldOrderByNombre|TablaPosicionesCalculator.Calculate()|Verificar el desempate final propio por nombre, que hace el orden determinista cuando todo lo demás es igual.
+TablaPosicionesCalculatorTests|Calculate_WithSeedData_ShouldProduceExpectedTabla|TablaPosicionesCalculator.Calculate()|Reproducir los tres resultados de los datos iniciales y obtener la tabla esperada: Operaciones City 4, Tecnología FC 3, Recursos Humanos Athletic 1 y Finanzas United 0.
+
+# ---------------------------------------------------------------------------
+# ResultTests y SequentialGuidTests — Domain/Common
+# ---------------------------------------------------------------------------
+ResultTests|Success_ShouldBeSuccessfulWithoutError|Result.Success()|Verificar que un resultado exitoso informa IsSuccess, no tiene error y deja ErrorMessage y ErrorCode vacíos.
+ResultTests|Failure_ShouldExposeErrorMessageAndErrorCode|Result.Failure()|Comprobar que un resultado fallido expone el mensaje y el código del error, como pide el Result Pattern del requerimiento.
+ResultTests|Failure_WithoutErrorCode_ShouldBeAllowed|Result.Failure()|Confirmar que el código de error es opcional: un error solo con mensaje es válido.
+ResultTests|Failure_WithErrorNone_ShouldThrow|Result (constructor)|Impedir estados incoherentes: crear un fallo sin error es un error de programación y lanza excepción.
+ResultTests|GenericSuccess_ShouldExposeValue|Result<T>.Value|Verificar que un Result<T> exitoso entrega su valor.
+ResultTests|GenericFailure_AccessingValue_ShouldThrow|Result<T>.Value|Comprobar que leer el valor de un resultado fallido lanza InvalidOperationException en lugar de devolver un valor por defecto.
+ResultTests|ImplicitConversionFromValue_ShouldCreateSuccess|Result<T> (conversión implícita)|Verificar que devolver directamente un valor desde un método que retorna Result<T> crea un éxito.
+ResultTests|ImplicitConversionFromError_ShouldCreateFailure|Result<T> (conversión implícita)|Verificar que devolver directamente un Error desde un método que retorna Result<T> crea un fallo.
+ResultTests|ValidationError_ShouldGroupFieldErrors|ValidationError|Comprobar que un error de validación agrupa varios errores de campo con el código Validation.Failed.
+ResultTests|ErrorFactories_ShouldAssignType|Error.Validation/NotFound/Conflict/Failure|Verificar que cada fábrica de errores asigna su ErrorType, que es lo que la API traduce a 400, 404, 409 o 500.
+SequentialGuidTests|NewGuid_ShouldBeUnique|SequentialGuid.NewGuid()|Comprobar que los identificadores generados no se repiten.
+SequentialGuidTests|NewGuid_ShouldBeAscendingUsingSqlServerOrdering|SequentialGuid.NewGuid()|Verificar que los Guid salen en orden ascendente según la comparación de SQL Server, lo que evita fragmentar el índice agrupado.
+
+# ---------------------------------------------------------------------------
+# TorneoTests — Domain/Torneos/Torneo.cs
+# ---------------------------------------------------------------------------
+TorneoTests|Create_ShouldStartAsPlanificado|Torneo.Create()|Verificar que un torneo nuevo nace en estado Planificado y sin equipos inscritos.
+TorneoTests|Create_WithFechaFinBeforeFechaInicio_ShouldFail|Torneo.Create()|Rechazar un torneo cuya fecha de fin es anterior a la de inicio.
+TorneoTests|RegisterEquipo_Twice_ShouldReturnConflict|Torneo.RegisterEquipo()|Impedir inscribir dos veces el mismo equipo en un torneo (conflicto).
+TorneoTests|RegisterEquipo_InFinishedTorneo_ShouldFail|Torneo.RegisterEquipo()|Comprobar que un torneo finalizado no admite inscripciones.
+TorneoTests|ChangeStatus_Forward_ShouldSucceed|Torneo.ChangeStatus()|Verificar que el estado avanza de Planificado a EnCurso y de EnCurso a Finalizado.
+TorneoTests|ChangeStatus_Backward_ShouldFail|Torneo.ChangeStatus()|Comprobar que el estado no puede retroceder, por ejemplo de Finalizado a EnCurso.
+TorneoTests|WithdrawEquipo_NotRegistered_ShouldFail|Torneo.WithdrawEquipo()|Rechazar el retiro de un equipo que no está inscrito en el torneo.
+TorneoTests|EnsureAcceptsPartidoOn_ShouldRespectTorneoDates|Torneo.EnsureAcceptsPartidoOn()|Verificar que solo se aceptan partidos con fecha dentro del rango del torneo.
+
+# ---------------------------------------------------------------------------
+# EquipoTests y JugadorTests — Domain/Equipos y Domain/Jugadores
+# ---------------------------------------------------------------------------
+EquipoTests|Create_WithValidData_ShouldRaiseEquipoCreatedEvent|Equipo.Create()|Verificar que crear un equipo válido emite EquipoCreatedDomainEvent, uno de los dos eventos que exige el requerimiento.
+EquipoTests|Create_WithInvalidNombre_ShouldFail|Equipo.Create()|Rechazar nombres vacíos, demasiado cortos o demasiado largos.
+EquipoTests|Create_WithInvalidAbreviatura_ShouldFail|Equipo.Create()|Rechazar abreviaturas fuera del rango de 2 a 5 caracteres.
+EquipoTests|Update_ShouldReplaceAllFields|Equipo.Update()|Comprobar que la actualización reemplaza nombre, abreviatura y departamento.
+EquipoTests|Delete_Twice_ShouldKeepSameState|Equipo.Delete()|Verificar que eliminar dos veces deja el mismo estado, base del DELETE idempotente.
+JugadorTests|Create_WithValidData_ShouldRegisterJugadorInEquipo|Jugador.Create()|Verificar que un integrante válido queda registrado en su equipo, activo y con su evento de registro.
+JugadorTests|Create_WithNumeroCamisetaOutOfRange_ShouldFail|Jugador.Create()|Rechazar números de camiseta fuera del rango de 1 a 99.
+JugadorTests|Create_WithInactivePosicionJuego_ShouldFail|Jugador.Create()|Impedir registrar un integrante con una posición de juego desactivada en el catálogo.
+JugadorTests|Create_WithShortApellidos_ShouldFail|Jugador.Create()|Rechazar apellidos con menos de dos caracteres.
+JugadorTests|Update_ShouldKeepEquipo|Jugador.Update()|Comprobar que actualizar un jugador nunca lo cambia de equipo.
+
+# ---------------------------------------------------------------------------
+# PartidoTests — Domain/Partidos/Partido.cs
+# ---------------------------------------------------------------------------
+PartidoTests|Schedule_WithRegisteredEquipos_ShouldCreateProgramadoPartido|Partido.Schedule()|Verificar que un partido entre dos equipos inscritos se crea en estado Programado y emite su evento.
+PartidoTests|Schedule_WithSameEquipo_ShouldFail|Partido.Schedule()|Rechazar un partido donde el equipo local y el visitante son el mismo.
+PartidoTests|Schedule_WithEquipoNotRegistered_ShouldFail|Partido.Schedule()|Rechazar un partido con un equipo que no está inscrito en el torneo.
+PartidoTests|RegisterResult_WithConsistentGoles_ShouldMarkJugadoAndRaiseEvent|Partido.RegisterResult()|Validar el registro correcto: el partido pasa a Jugado, guarda marcador y goles, y emite PartidoResultRegisteredDomainEvent.
+PartidoTests|RegisterResult_Twice_ShouldReturnConflict|Partido.RegisterResult()|Impedir registrar un segundo resultado en un partido ya jugado (conflicto).
+PartidoTests|RegisterResult_WhenGolesDoNotMatchScore_ShouldFail|Partido.RegisterResult()|Rechazar un resultado cuya cantidad de goles por equipo no coincide con el marcador.
+PartidoTests|RegisterResult_WhenScorerBelongsToOtherEquipo_ShouldFail|Partido.RegisterResult()|Rechazar un gol atribuido a un jugador que no pertenece al equipo que lo anotó.
+PartidoTests|RegisterResult_WithMinutoOutOfRange_ShouldFail|Partido.RegisterResult()|Rechazar goles con minuto fuera del rango de 1 a 130.
+PartidoTests|RegisterResult_OnCancelledPartido_ShouldFail|Partido.RegisterResult()|Comprobar que un partido cancelado no admite resultado.
+PartidoTests|Delete_PlayedPartido_ShouldFail|Partido.Delete()|Impedir eliminar un partido que ya se jugó.
+PartidoTests|Update_PlayedPartido_ShouldFail|Partido.Update()|Impedir reprogramar un partido que ya se jugó.
+
+# ---------------------------------------------------------------------------
+# DispatcherTests, CommandHandlerTests y CqrsRegistrationTests — Application
+# ---------------------------------------------------------------------------
+DispatcherTests|Send_WithInvalidCommand_ShouldReturnValidationErrorWithoutCallingHandler|Dispatcher.Send()|Verificar que un Command inválido devuelve ValidationError y nunca llega a su handler.
+DispatcherTests|Send_WithValidCommand_ShouldExecuteHandler|Dispatcher.Send()|Comprobar que un Command válido se entrega a su handler y devuelve su resultado.
+DispatcherTests|Query_WithInvalidPaging_ShouldReturnValidationError|Dispatcher.Query()|Rechazar pageNumber menor a 1 o pageSize fuera del rango de 1 a 100.
+DispatcherTests|Query_WithSortByOutsideWhitelist_ShouldReturnValidationError|Dispatcher.Query()|Rechazar un sortBy que no está en la lista blanca, primera barrera contra inyección SQL en el ORDER BY.
+DispatcherTests|Query_WithValidPaging_ShouldReturnPagedResponseFromReadSide|Dispatcher.Query()|Verificar que una Query válida devuelve el formato paginado desde el lado de lectura.
+DispatcherTests|Send_WithValidCommand_ShouldLogInformationWithNameAndDurationOnly|Dispatcher (logs)|Comprobar que el log de un Command exitoso tiene su nombre y duración y no incluye su contenido.
+DispatcherTests|Send_WhenResultFails_ShouldLogWarningWithErrorCode|Dispatcher (logs)|Comprobar que un resultado fallido se registra como Warning con su tipo y código de error.
+DispatcherTests|SendAndQuery_ShouldOpenOneSpanPerRequestInTheCurrentTrace|Dispatcher (trazas)|Verificar que cada Command o Query abre un span dentro de la traza actual.
+CommandHandlerTests|CreateEquipo_WithDuplicateNombre_ShouldReturnConflictWithoutCommit|CreateEquipoCommandHandler|Rechazar un nombre de equipo duplicado con conflicto y sin confirmar nada.
+CommandHandlerTests|CreateEquipo_WithValidData_ShouldAddAndCommitOnce|CreateEquipoCommandHandler|Verificar que crear un equipo agrega la entidad y confirma con el Unit of Work una sola vez.
+CommandHandlerTests|CreateEquipo_WhenCommitFails_ShouldReturnCommitError|CreateEquipoCommandHandler|Comprobar que si el commit falla, el handler devuelve ese error en lugar de un éxito.
+CommandHandlerTests|DeleteEquipo_ThatNeverExisted_ShouldReturnNotFound|DeleteEquipoCommandHandler|Verificar que eliminar un equipo que nunca existió devuelve NotFound (404).
+CommandHandlerTests|DeleteEquipo_AlreadyDeleted_ShouldSucceedWithoutCommit|DeleteEquipoCommandHandler|Verificar que eliminar un equipo ya eliminado es un éxito sin cambios, es decir un DELETE idempotente.
+CommandHandlerTests|DeleteEquipo_WithPartidos_ShouldReturnConflict|DeleteEquipoCommandHandler|Impedir eliminar un equipo que tiene partidos asociados.
+CommandHandlerTests|SchedulePartido_WhenEquipoAlreadyPlaysAtThatTime_ShouldReturnConflict|SchedulePartidoCommandHandler|Impedir programar un partido si uno de los equipos ya juega a esa misma hora.
+CommandHandlerTests|RegisterPartidoResult_ForUnknownPartido_ShouldReturnNotFound|RegisterPartidoResultCommandHandler|Verificar que registrar el resultado de un partido inexistente devuelve NotFound.
+CqrsRegistrationTests|EveryCommandAndQuery_ShouldHaveExactlyOneHandler|AddApplication() (registro CQRS)|Garantizar que cada uno de los Commands y Queries tiene exactamente un handler registrado.
+CqrsRegistrationTests|EveryAllowedSortField_ShouldMapToASqlColumn|Queries paginadas y SqlSort|Comprobar que cada campo de la lista blanca de sortBy tiene su columna SQL configurada.
+CqrsRegistrationTests|PagedQueries_ShouldUseFirstAllowedFieldAsDefaultSort|PagedQuery.EffectiveSortBy|Verificar que, sin sortBy, se ordena por el primer campo permitido de cada Query.
+
+# ---------------------------------------------------------------------------
+# DomainEventDispatcherTests — Application/Messaging y handlers de eventos
+# ---------------------------------------------------------------------------
+DomainEventDispatcherTests|AddApplication_ShouldRegisterHandlersForMandatoryEvents|AddApplication() (eventos)|Verificar que los dos eventos obligatorios, equipo creado y resultado registrado, tienen su handler registrado.
+DomainEventDispatcherTests|EquipoCreated_ShouldBeLoggedWithStructuredProperties|EquipoCreatedDomainEventHandler|Comprobar que el evento de equipo creado se registra en el log con propiedades estructuradas.
+DomainEventDispatcherTests|PartidoResultRegistered_ShouldBeLoggedWithScore|PartidoResultRegisteredDomainEventHandler|Comprobar que el evento de resultado registrado se registra en el log con el marcador.
+DomainEventDispatcherTests|EventWithoutHandlers_ShouldCompleteWithoutErrors|DomainEventDispatcher|Verificar que despachar un evento sin handlers termina sin errores.
+DomainEventDispatcherTests|Dispatch_ShouldMarkTheEventInTheCurrentTrace|DomainEventDispatcher|Comprobar que el evento queda marcado en la traza actual con su identificador.
+
+# ---------------------------------------------------------------------------
+# ArchitectureTests — reglas de Clean Architecture
+# ---------------------------------------------------------------------------
+ArchitectureTests|Domain_ShouldNotDependOnAnyOtherLayer|Ensamblado Domain|Verificar que Domain no depende de Application, Infrastructure ni Api.
+ArchitectureTests|Domain_ShouldOnlyReferenceBaseClassLibrary|Ensamblado Domain|Comprobar que Domain solo referencia la biblioteca base de .NET, sin paquetes externos.
+ArchitectureTests|Application_ShouldDependOnlyOnDomain|Ensamblado Application|Verificar que Application no depende de Infrastructure ni de Api.
+ArchitectureTests|Application_ShouldOnlyReferenceDomainAssembly|Ensamblado Application|Comprobar que, de las capas del proyecto, Application solo referencia a Domain.
+ArchitectureTests|Application_ShouldNotDependOnPersistenceTechnologies|Ensamblado Application|Impedir que Application use EF Core, Dapper o SqlClient: la persistencia se implementa en Infrastructure.
+ArchitectureTests|Infrastructure_ShouldNotDependOnApi|Ensamblado Infrastructure|Verificar que Infrastructure no depende de la capa Api.
+ArchitectureTests|Controllers_ShouldOnlyOrchestrateThroughApplication|Controllers de Api|Comprobar que los controllers no usan Infrastructure, EF Core ni Dapper: solo orquestan a través de Application.
+
+# ---------------------------------------------------------------------------
+# UnitOfWorkTests, SqlSortTests y SqlScriptsTests — Infrastructure
+# ---------------------------------------------------------------------------
+UnitOfWorkTests|CommitAsync_ShouldPersistChangesFromMultipleRepositoriesTogether|UnitOfWork.CommitAsync()|Verificar que los cambios de varios repositorios se guardan juntos en un solo commit.
+UnitOfWorkTests|WithoutCommit_ShouldNotPersistChanges|UnitOfWork|Comprobar el commit explícito: sin llamar a CommitAsync no se guarda nada.
+UnitOfWorkTests|CommitAsync_ShouldRegisterDomainEventsAndClearThem|UnitOfWork.CommitAsync()|Verificar que los eventos se guardan en EventosDominio y se limpian de los agregados.
+UnitOfWorkTests|CommitAsync_ShouldAssignFechaCreacionFromDateTimeProvider|UnitOfWork.CommitAsync()|Comprobar que la fecha de creación se asigna con el reloj del sistema inyectado.
+UnitOfWorkTests|CommitAsync_ShouldAssignFechaModificacionOnUpdate|UnitOfWork.CommitAsync()|Comprobar que la fecha de modificación se asigna al actualizar.
+UnitOfWorkTests|CommitAsync_OnConcurrencyConflict_ShouldReturnConflictAndKeepDomainEvents|UnitOfWork.CommitAsync()|Verificar que un conflicto de concurrencia devuelve Conflict sin perder los eventos pendientes.
+UnitOfWorkTests|CommitAsync_OnUnexpectedError_ShouldPropagateExceptionAndKeepDomainEvents|UnitOfWork.CommitAsync()|Comprobar que un error inesperado se propaga como excepción y los eventos no se pierden.
+UnitOfWorkTests|CommitAsync_ShouldDispatchDomainEventsAfterCommitAndMarkThemProcessed|UnitOfWork.CommitAsync()|Verificar que los eventos se despachan después del commit y quedan con FechaProcesado.
+UnitOfWorkTests|CommitAsync_WhenDomainEventHandlerFails_ShouldSucceedAndLeaveEventPending|UnitOfWork.CommitAsync()|Comprobar que si un handler falla, la operación se mantiene exitosa y el evento queda pendiente de procesar.
+UnitOfWorkTests|CommitAsync_ShouldStoreTraceIdAndCorrelationIdOfCurrentRequest|UnitOfWork.CommitAsync()|Verificar que cada evento guarda el TraceId y el CorrelationId del request que lo originó.
+UnitOfWorkTests|CommitAsync_WithoutChanges_ShouldSucceed|UnitOfWork.CommitAsync()|Comprobar que confirmar sin cambios pendientes es un éxito.
+UnitOfWorkTests|DbContextSaveChanges_OutsideUnitOfWork_ShouldThrow|MundialitoDbContext.SaveChanges()|Garantizar que guardar directamente desde el DbContext fuera del Unit of Work lanza excepción.
+UnitOfWorkTests|DbContextSaveChangesAsync_OutsideUnitOfWork_ShouldThrowAndNotPersist|MundialitoDbContext.SaveChangesAsync()|Garantizar lo mismo en la versión asíncrona y que no se persiste nada.
+SqlSortTests|ToOrderBy_ShouldTranslateFieldAndAppendTieBreaker|SqlSort.ToOrderBy()|Verificar que el sortBy se traduce a su columna y se agrega la columna de desempate para un orden estable.
+SqlSortTests|ToOrderBy_WhenSortColumnIsTieBreaker_ShouldNotRepeatColumn|SqlSort.ToOrderBy()|Evitar repetir en el ORDER BY una columna que ya es la de orden, lo que SQL Server rechaza.
+SqlSortTests|ToOrderBy_WhenSortColumnIsPartOfTieBreaker_ShouldKeepOnlyRemainingColumns|SqlSort.ToOrderBy()|Comprobar que del desempate solo quedan las columnas que no están ya en el orden.
+SqlScriptsTests|Schema_ShouldBeEmbeddedInExecutionOrder|SqlScripts|Verificar que los scripts 001 y 002 van incluidos en el ensamblado y en orden de ejecución.
+SqlScriptsTests|ForDatabase_ShouldReplaceDatabaseName|SqlScripts.ForDatabase()|Comprobar que el nombre de la base se reemplaza en CREATE DATABASE, USE y DB_ID.
+SqlScriptsTests|ForDatabase_WithUnsafeName_ShouldBeRejected|SqlScripts.ForDatabase()|Rechazar nombres de base con caracteres no permitidos, que podrían inyectar SQL.
+SqlScriptsTests|SplitBatches_ShouldSplitOnlyOnGoLines|SqlScripts.SplitBatches()|Verificar que el script se divide solo en las líneas GO y no en la palabra GO dentro de otro texto.
+
+# ---------------------------------------------------------------------------
+# Middlewares y HTTP — Api
+# ---------------------------------------------------------------------------
+IdempotencyMiddlewareTests|Post_WithoutKey_ShouldReturn400AndNotExecute|IdempotencyMiddleware|Verificar que un POST sin Idempotency-Key responde 400 y no ejecuta el endpoint.
+IdempotencyMiddlewareTests|Post_WithInvalidKey_ShouldReturn400|IdempotencyMiddleware|Rechazar claves vacías o con espacios.
+IdempotencyMiddlewareTests|Post_WithKeyLongerThanLimit_ShouldReturn400|IdempotencyMiddleware|Rechazar claves de más de 100 caracteres.
+IdempotencyMiddlewareTests|FirstPost_ShouldExecuteAndPersistOriginalResponse|IdempotencyMiddleware|Verificar que el primer POST con una clave se ejecuta y guarda la respuesta original.
+IdempotencyMiddlewareTests|RepeatedPost_WithSameKeyAndBody_ShouldReturnOriginalResponseWithoutExecutingAgain|IdempotencyMiddleware|Comprobar que repetir la petición devuelve la respuesta original con Idempotent-Replayed y sin volver a ejecutar.
+IdempotencyMiddlewareTests|RepeatedPost_WithSameJsonInDifferentFormat_ShouldBeTreatedAsSameRequest|IdempotencyMiddleware|Verificar que el mismo JSON con distinto formato o espacios cuenta como la misma petición.
+IdempotencyMiddlewareTests|RepeatedPost_WithSameKeyAndDifferentBody_ShouldReturn409|IdempotencyMiddleware|Rechazar con 409 la reutilización de una clave con otro cuerpo.
+IdempotencyMiddlewareTests|Post_WhileSameKeyIsInProgress_ShouldReturn409|IdempotencyMiddleware|Rechazar con 409 una petición cuya clave todavía está en proceso.
+IdempotencyMiddlewareTests|SameKey_OnDifferentRoutes_ShouldBeIndependent|IdempotencyMiddleware|Verificar que la misma clave en dos rutas distintas no interfiere.
+IdempotencyMiddlewareTests|ClientErrorResponse_ShouldBeStoredAndReplayed|IdempotencyMiddleware|Comprobar que una respuesta 4xx también se guarda y se repite igual.
+IdempotencyMiddlewareTests|ServerErrorResponse_ShouldReleaseKeySoTheClientCanRetry|IdempotencyMiddleware|Verificar que una respuesta 5xx libera la clave para que el cliente pueda reintentar.
+IdempotencyMiddlewareTests|UnhandledException_ShouldReleaseKeyAndPropagate|IdempotencyMiddleware|Comprobar que una excepción libera la clave y se propaga al manejador global.
+IdempotencyMiddlewareTests|RequestBody_ShouldRemainReadableByTheAction|IdempotencyMiddleware|Verificar que, después de calcular el hash, el cuerpo sigue disponible para el controller.
+IdempotencyMiddlewareTests|PostToUnknownRoute_ShouldNotRequireKey|IdempotencyMiddleware|Comprobar que un POST a una ruta inexistente no exige clave y responde 404.
+IdempotencyMiddlewareTests|OtherMethods_ShouldNotRequireKey|IdempotencyMiddleware|Verificar que GET, PUT, PATCH y DELETE no exigen Idempotency-Key.
+CorrelationIdMiddlewareTests|Request_WithValidCorrelationId_ShouldKeepItAndReturnIt|CorrelationIdMiddleware|Verificar que un X-Correlation-Id válido se conserva y se devuelve en la respuesta.
+CorrelationIdMiddlewareTests|Request_WithoutValidCorrelationId_ShouldGenerateNewGuid|CorrelationIdMiddleware|Comprobar que si falta o es inválido se genera un GUID nuevo.
+CorrelationIdMiddlewareTests|Request_WithCorrelationIdLongerThanLimit_ShouldGenerateNewOne|CorrelationIdMiddleware|Reemplazar los valores de más de 64 caracteres, el largo de la columna en la base.
+CorrelationIdMiddlewareTests|Request_ShouldReturnTraceIdAndShareCorrelationIdWithInnerLayers|CorrelationIdMiddleware|Verificar que se devuelve X-Trace-Id y que el CorrelationId llega a las capas internas como baggage de la traza.
+RequestTimingMiddlewareTests|Request_ShouldLogDurationWithLevelByStatusCode|RequestTimingMiddleware|Comprobar que cada request registra su duración con el nivel según el código: Information, Warning o Error.
+RequestTimingMiddlewareTests|SlowRequest_ShouldLogWarning|RequestTimingMiddleware|Verificar que un request más lento que el umbral se registra como Warning.
+RequestTimingMiddlewareTests|Request_ShouldNotLogQueryString|RequestTimingMiddleware|Garantizar que la query string no aparece en el log, para no registrar datos sensibles.
+RequestTimingMiddlewareTests|UnhandledException_ShouldBeLoggedAsErrorAndRethrown|RequestTimingMiddleware|Comprobar que una excepción se registra como Error con su duración y se vuelve a lanzar.
+ErrorHttpMappingTests|ToStatusCode_ShouldMapEveryErrorType|ErrorHttpMapping.ToStatusCode()|Verificar la traducción de cada tipo de error: Validation 400, NotFound 404, Conflict 409 y Failure 500.
+ErrorHttpMappingTests|Create_ForBusinessError_ShouldIncludeMessageCodeAndTraceId|ApiProblemDetails.Create()|Comprobar que un error de negocio genera ProblemDetails con el mensaje, el errorCode y el traceId.
+ErrorHttpMappingTests|Create_ForValidationError_ShouldReturnErrorsByField|ApiProblemDetails.Create()|Verificar que un error de validación devuelve los errores agrupados por campo.
+ErrorHttpMappingTests|Create_ForErrorWithoutCode_ShouldOmitErrorCode|ApiProblemDetails.Create()|Comprobar que un error sin código no agrega errorCode a la respuesta.

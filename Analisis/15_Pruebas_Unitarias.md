@@ -119,6 +119,22 @@ dotnet test --collect:"XPlat Code Coverage"
 
 Opcional: workflow de GitHub Actions que compile y ejecute pruebas en cada push.
 
+### Catálogo de pruebas
+
+Al terminar `dotnet test`, cada proyecto de pruebas genera su catálogo en texto (`Catalogo_Pruebas_Unitarias.txt` y `Catalogo_Pruebas_Integracion.txt`):
+
+- resultado global y resumen por grupo (casos, aprobadas, fallidas y omitidas);
+- por cada prueba: estado, componente probado, objetivo, duración y variantes de las `[Theory]`;
+- motivo del fallo o de la omisión.
+
+| Pieza | Qué hace |
+|---|---|
+| `tests/Directory.Build.targets` | Pide a VSTest el resultado en `.trx` y, al terminar, ejecuta el generador. Si una prueba falla, `dotnet test` termina con error igual, pero el catálogo se genera y muestra la falla. |
+| `tests/Generar_Catalogo_Pruebas.ps1` | Cruza el `.trx` con las descripciones y escribe el informe. También se puede ejecutar a mano. |
+| `Catalogo_Descripciones.txt` (en cada proyecto) | Una línea por método: `Clase\|Metodo\|Componente\|Objetivo`. Una prueba sin su línea aparece como *SIN DESCRIPCION*. |
+
+Los catálogos generados y los `.trx` no se versionan, porque cambian en cada ejecución. Para no generarlos: `dotnet test -p:GenerarCatalogoPruebas=false`.
+
 ## Criterios de aceptación
 
 - [ ] Los seis grupos mínimos tienen pruebas.

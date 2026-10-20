@@ -494,3 +494,7 @@ $RECYCLE.BIN/
 /Postman/globals/
 /Postman/mocks/
 /Postman/specs/
+
+# Resultados que se regeneran en cada `dotnet test` (catálogo de pruebas)
+MundialitoCorp_Back/tests/*/ResultadosDePrueba/
+MundialitoCorp_Back/tests/*/Catalogo_Pruebas_*.txt

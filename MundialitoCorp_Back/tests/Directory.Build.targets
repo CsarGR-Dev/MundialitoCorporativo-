@@ -1,0 +1,63 @@
+<Project>
+
+  <!--
+    Catalogo de pruebas: al terminar `dotnet test`, cada proyecto de pruebas que tenga un
+    Catalogo_Descripciones.txt genera su informe (Catalogo_Pruebas_Unitarias.txt o
+    Catalogo_Pruebas_Integracion.txt) con el resultado de cada prueba y su descripcion.
+    Se desactiva con: dotnet test -p:GenerarCatalogoPruebas=false
+  -->
+
+  <PropertyGroup Condition="Exists('$(MSBuildProjectDirectory)\Catalogo_Descripciones.txt')">
+    <GenerarCatalogoPruebas Condition="'$(GenerarCatalogoPruebas)' == ''">true</GenerarCatalogoPruebas>
+    <CatalogoResultados>$(MSBuildProjectDirectory)\ResultadosDePrueba</CatalogoResultados>
+    <CatalogoTrx>Catalogo_$(MSBuildProjectName).trx</CatalogoTrx>
+    <CatalogoScript>$(MSBuildThisFileDirectory)Generar_Catalogo_Pruebas.ps1</CatalogoScript>
+    <CatalogoPowerShell Condition="'$(OS)' == 'Windows_NT'">powershell</CatalogoPowerShell>
+    <CatalogoPowerShell Condition="'$(OS)' != 'Windows_NT'">pwsh</CatalogoPowerShell>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'MundialitoCorporativo.UnitTests'">
+    <CatalogoSalida>Catalogo_Pruebas_Unitarias.txt</CatalogoSalida>
+    <CatalogoTitulo>CATALOGO DE PRUEBAS UNITARIAS - MundialitoCorporativo.UnitTests</CatalogoTitulo>
+    <CatalogoRequisito>Requerimiento: item 15 - Pruebas unitarias</CatalogoRequisito>
+    <CatalogoEntorno>sin SQL Server ni API en ejecucion (EF Core en memoria y dobles de prueba)</CatalogoEntorno>
+    <CatalogoAlcance>- Alcance: dominio, tabla de posiciones, Result Pattern, CQRS, Unit of Work, idempotencia,|  observabilidad y reglas de arquitectura. Lo que necesita SQL Server o la API por HTTP|  esta en Catalogo_Pruebas_Integracion.txt.</CatalogoAlcance>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'MundialitoCorporativo.IntegrationTests'">
+    <CatalogoSalida>Catalogo_Pruebas_Integracion.txt</CatalogoSalida>
+    <CatalogoTitulo>CATALOGO DE PRUEBAS DE INTEGRACION - MundialitoCorporativo.IntegrationTests</CatalogoTitulo>
+    <CatalogoRequisito>Requerimiento: item 15 - Pruebas de integracion</CatalogoRequisito>
+    <CatalogoEntorno>SQL Server real con una base temporal creada con el script 001; API en memoria con WebApplicationFactory</CatalogoEntorno>
+    <CatalogoAlcance>- Las pruebas se omiten (no fallan) si no hay SQL Server disponible. El servidor se cambia con|  la variable de entorno MUNDIALITO_TEST_SQLSERVER.</CatalogoAlcance>
+  </PropertyGroup>
+
+  <!-- Resultado en .trx con nombre fijo para que el generador lo encuentre. Si se pasa otro
+       logger por la linea de comandos, se respeta y el catalogo no se genera. -->
+  <PropertyGroup Condition="'$(GenerarCatalogoPruebas)' == 'true'">
+    <VSTestLogger Condition="'$(VSTestLogger)' == ''">trx%3BLogFileName=$(CatalogoTrx)</VSTestLogger>
+    <VSTestResultsDirectory Condition="'$(VSTestResultsDirectory)' == ''">$(CatalogoResultados)</VSTestResultsDirectory>
+  </PropertyGroup>
+
+  <Target Name="LimpiarTrxCatalogo" BeforeTargets="VSTest" Condition="'$(GenerarCatalogoPruebas)' == 'true'">
+    <Delete Files="$(VSTestResultsDirectory)\$(CatalogoTrx)" ContinueOnError="true" />
+  </Target>
+
+  <!-- Mismo target VSTest del SDK (Microsoft.TestPlatform.targets), con una diferencia: si una prueba
+       falla, el error se informa igual y `dotnet test` termina con error, pero antes se genera el
+       catalogo, para que el informe muestre la prueba fallida en lugar de quedar desactualizado. -->
+  <Target Name="VSTest" DependsOnTargets="ShowInfoMessageIfProjectHasNoIsTestProjectProperty">
+    <CallTarget Targets="_VSTestConsole" ContinueOnError="ErrorAndContinue"
+                Condition="$(_MSBUILDTLENABLED) == '0' OR !$(VsTestUseMSBuildOutput) OR $(MSBUILDENSURESTDOUTFORTASKPROCESSES) == '1'" />
+    <CallTarget Targets="_VSTestMSBuild" ContinueOnError="ErrorAndContinue"
+                Condition="$(_MSBUILDTLENABLED) == '1' AND $(VsTestUseMSBuildOutput)" />
+    <CallTarget Targets="GenerarCatalogoPruebas" />
+  </Target>
+
+  <Target Name="GenerarCatalogoPruebas"
+          Condition="'$(GenerarCatalogoPruebas)' == 'true' And Exists('$(VSTestResultsDirectory)\$(CatalogoTrx)')">
+    <Exec Command="$(CatalogoPowerShell) -NoProfile -ExecutionPolicy Bypass -File &quot;$(CatalogoScript)&quot; -Proyecto &quot;$(MSBuildProjectFullPath)&quot; -Trx &quot;$(VSTestResultsDirectory)\$(CatalogoTrx)&quot; -Salida &quot;$(MSBuildProjectDirectory)\$(CatalogoSalida)&quot; -Titulo &quot;$(CatalogoTitulo)&quot; -Requisito &quot;$(CatalogoRequisito)&quot; -Entorno &quot;$(CatalogoEntorno)&quot; -Alcance &quot;$(CatalogoAlcance)&quot;"
+          ContinueOnError="true" />
+  </Target>
+
+</Project>
